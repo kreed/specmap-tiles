@@ -18,7 +18,7 @@ con = sqlite3.connect("l_market.sqlite")
 cur = con.cursor()
 
 def canon_owner(owner):
-	if owner.startswith('USCOC') or owner == 'King Street Wireless, LP' or owner == 'UNITED STATES CELLULAR OPERATING COMPANY LLC' or owner == 'CARROLL WIRELESS, LP':
+	if owner.startswith('USCOC') or owner == 'King Street Wireless, LP' or owner == 'UNITED STATES CELLULAR OPERATING COMPANY LLC' or owner == 'CARROLL WIRELESS, LP' or owner == 'BARAT WIRELESS, L.P.':
 		return 'US Cellular'
 	if owner == 'T-Mobile License LLC' or owner == 'T-MOBILE LICENSE LLC':
 		return 'T-Mobile'
@@ -82,6 +82,11 @@ def lookup_county(fips):
 		codes = ()
 	elif fips == '12025':
 		codes = '12086',
+	elif fips == '30113':
+		# merged into 30067 and 30031
+		codes = ()
+	elif fips == '08013':
+		codes = '08013', '08014'
 	else:
 		codes = fips,
 	return [ shape(county_geoms[f]) for f in codes ]
