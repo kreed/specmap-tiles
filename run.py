@@ -10,7 +10,8 @@ from shapely.geometry import mapping, shape
 
 from pprint import pprint
 
-block = sys.argv[1]
+radio_service = sys.argv[1]
+block = sys.argv[2]
 result = []
 
 con = sqlite3.connect("l_market.sqlite")
@@ -61,7 +62,7 @@ def parse_dms(d, m, s, direc):
 	r = r * (-1 if direc in ('S', 'W') else 1)
 	return round(r, 6)
 
-q = cur.execute("SELECT call_sign, entity_name, market_code, population, sum(defined_area_population) FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign) LEFT OUTER JOIN MP USING (call_sign) WHERE license_status='A' AND radio_service_code='WY' AND channel_block=? AND entity_type='L' AND cancellation_date='' AND NOT call_sign LIKE 'L%' GROUP BY call_sign", block)
+q = cur.execute("SELECT call_sign, entity_name, market_code, population, sum(defined_area_population) FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign) LEFT OUTER JOIN MP USING (call_sign) WHERE license_status='A' AND radio_service_code=? AND channel_block=? AND entity_type='L' AND cancellation_date='' AND NOT call_sign LIKE 'L%' GROUP BY call_sign", (radio_service, block))
 for row in q.fetchall():
 	call_sign, owner, market, population, part_pop = row
 
@@ -78,7 +79,7 @@ for row in q.fetchall():
 
 			if def_und == 'D':
 				if inc_exc == 'I':
-					match = re.match('(\d+): [A-Z ]+, [A-Z]{2}', area_name)
+					match = re.match('(\d+): [A-Z \.-]+, ?[A-Z]{2}', area_name)
 					if match:
 						fips = match.group(1)
 						add_parts.append(shape(county_geoms[fips]))
@@ -114,8 +115,17 @@ for row in q.fetchall():
 	props = feature_props(call_sign, owner, market, population)
 	result.append(geojson.Feature(properties=props, geometry=geom))
 
+def filename(rd, block):
+	if rd == 'WY' or rd == 'WZ':
+		name = '700'
+	elif rd == 'WU':
+		name = '700U'
+	elif rd == 'AW':
+		name = 'AWS'
+	return name + block + '.geojson'
+
 result = geojson.FeatureCollection(result)
-with open('700%s.geojson' % block, 'w') as out:
+with open(filename(radio_service, block), 'w') as out:
 	geojson.dump(result, out)
 
 con.commit()
