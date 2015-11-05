@@ -20,5 +20,11 @@ with open('FCCCNTY2K.txt', encoding='latin-1') as infile:
 			markets[bea] = []
 		markets[bea].append(line['FIPS'])
 
+		rea = 'REA%03d' % int(line['REA'])
+		if not rea in markets:
+			markets[rea] = []
+		markets[rea].append(line['FIPS'])
+
+
 print('markets = ', end='')
 print(markets)
