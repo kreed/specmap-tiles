@@ -18,9 +18,9 @@ con = sqlite3.connect("l_market.sqlite")
 cur = con.cursor()
 
 def canon_owner(owner):
-	if owner.startswith('USCOC') or owner == 'King Street Wireless, LP' or owner == 'UNITED STATES CELLULAR OPERATING COMPANY LLC':
+	if owner.startswith('USCOC') or owner == 'King Street Wireless, LP' or owner == 'UNITED STATES CELLULAR OPERATING COMPANY LLC' or owner == 'CARROLL WIRELESS, LP':
 		return 'US Cellular'
-	if owner == 'T-Mobile License LLC':
+	if owner == 'T-Mobile License LLC' or owner == 'T-MOBILE LICENSE LLC':
 		return 'T-Mobile'
 	if owner == 'AT & T Mobility Spectrum LLC' or owner == 'AT&T Mobility Spectrum LLC' or owner == 'New Cingular Wireless PCS, LLC':
 		return 'AT&T'
@@ -30,6 +30,8 @@ def canon_owner(owner):
 		return 'Continuum 700'
 	if owner == 'Cellular South Licenses, LLC':
 		return 'C Spire'
+	if owner == 'Cellco Partnership' or owner == 'Verizon Wireless (VAW) LLC' or owner == 'Alltel Communications, LLC':
+		owner = 'Verizon'
 	return owner
 
 color_table = {
@@ -62,6 +64,28 @@ def parse_dms(d, m, s, direc):
 	r = r * (-1 if direc in ('S', 'W') else 1)
 	return round(r, 6)
 
+def lookup_county(fips):
+	if fips == '02231':
+		codes = '02282','02105','02230'
+	elif fips == '02201':
+		codes = '02198','02275'
+	elif fips == '02280':
+		codes = '02195',
+	elif fips == '51560':
+		# merged with 51005
+		codes = ()
+	elif fips == '51780':
+		# merged with 51083
+		codes = ()
+	elif fips == '51515':
+		# merged with 51019
+		codes = ()
+	elif fips == '12025':
+		codes = '12086',
+	else:
+		codes = fips,
+	return [ shape(county_geoms[f]) for f in codes ]
+
 q = cur.execute("SELECT call_sign, entity_name, market_code, population, sum(defined_area_population) FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign) LEFT OUTER JOIN MP USING (call_sign) WHERE license_status='A' AND radio_service_code=? AND channel_block=? AND entity_type='L' AND cancellation_date='' AND NOT call_sign LIKE 'L%' GROUP BY call_sign", (radio_service, block))
 for row in q.fetchall():
 	call_sign, owner, market, population, part_pop = row
@@ -73,16 +97,17 @@ for row in q.fetchall():
 		add_parts = []
 		sub_parts = []
 
-		q = cur.execute('SELECT market_partition_code, defined_partition_area, include_exclude_ind, partitioned_seq_num, def_und_ind FROM MP WHERE call_sign=?', [call_sign])
+		q = cur.execute('SELECT market_partition_code, defined_partition_area, include_exclude_ind, partitioned_seq_num, def_und_ind FROM MP WHERE call_sign=?', (call_sign,))
 		for row in q.fetchall():
 			part_market, area_name, inc_exc, part_seq, def_und = row
 
 			if def_und == 'D':
 				if inc_exc == 'I':
-					match = re.match('(\d+): [A-Z \.-]+, ?[A-Z]{2}', area_name)
+					match = re.match('(\d{5}): .*', area_name)
 					if match:
-						fips = match.group(1)
-						add_parts.append(shape(county_geoms[fips]))
+						if not match.group(1) in county_geoms:
+							print(call_sign, *row)
+						add_parts = add_parts + lookup_county(match.group(1))
 					else:
 						print('non-county partition', row, file=sys.stderr)
 						add_parts.append(shape(market_geoms[part_market]))
@@ -91,7 +116,7 @@ for row in q.fetchall():
 					sys.exit(-1)
 			else:
 				points = []
-				for row in cur.execute('SELECT partition_lat_degrees, partition_lat_minutes, partition_lat_seconds, partition_lat_direction, partition_long_degrees, partition_long_minutes, partition_long_seconds, partition_long_direction, partition_sequence_number FROM MC WHERE call_sign=? AND undefined_partitioned_area=? ORDER BY partition_sequence_number', [call_sign, part_seq]):
+				for row in cur.execute('SELECT partition_lat_degrees, partition_lat_minutes, partition_lat_seconds, partition_lat_direction, partition_long_degrees, partition_long_minutes, partition_long_seconds, partition_long_direction, partition_sequence_number FROM MC WHERE call_sign=? AND undefined_partitioned_area=? ORDER BY partition_sequence_number', (call_sign, part_seq)):
 					lat = parse_dms(*row[0:4])
 					lng = parse_dms(*row[4:8])
 					points.append((lng, lat))
