@@ -116,5 +116,22 @@ uls_tables = {
 	('action_performed char(1)'),
 	('census int'),
 	('def_und_ind char(1)'),
+],
+'MC': [
+	('record_type char(2)'),
+	('unique_system_identifier numeric(9,0)'),
+	('uls_file_number char(14)'),
+	('ebf_number varchar(30)'),
+	('call_sign char(10)'),
+	('undefined_partitioned_area int'),
+	('partition_sequence_number int'),
+	('partition_lat_degrees int'),
+	('partition_lat_minutes int'),
+	('partition_lat_seconds numeric(3,1)'),
+	('partition_lat_direction char(1)'),
+	('partition_long_degrees int'),
+	('partition_long_minutes int'),
+	('partition_long_seconds numeric(3,1)'),
+	('partition_long_direction char(1)'),
 ]
 }
