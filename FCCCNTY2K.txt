@@ -75,7 +75,7 @@ FIPS,COUNTY,STATE,2KPOPULATION,RPC,MTA,BTA,REA,EAG_220,EAG_700,MEA,EA,PSR,CMA,VP
 02070,Dillingham,Alaska,4922.00,5,49,14,7,6,6,47,171,2,316,9,10
 02090,Fairbanks North Star,Alaska,82840.00,5,49,136,7,6,6,47,171,2,315,9,10
 02100,Haines,Alaska,2392.00,5,49,221,7,6,6,47,171,2,317,9,346
-02105,Hoonah-Angoon,Alaska,,,,,7,,,,171,,317,,
+02105,Hoonah-Angoon,Alaska,,,,,7,,,47,171,,317,,
 02110,Juneau,Alaska,30711.00,5,49,221,7,6,6,47,171,2,317,9,346
 02122,Kenai Peninsula,Alaska,49691.00,5,49,14,7,6,6,47,171,2,316,9,10
 02130,Ketchikan Gateway,Alaska,14070.00,5,49,221,7,6,6,47,171,2,317,9,346
@@ -85,14 +85,14 @@ FIPS,COUNTY,STATE,2KPOPULATION,RPC,MTA,BTA,REA,EAG_220,EAG_700,MEA,EA,PSR,CMA,VP
 02180,Nome,Alaska,9196.00,5,49,14,7,6,6,47,171,2,315,9,10
 02185,North Slope,Alaska,7385.00,5,49,14,7,6,6,47,171,2,315,9,10
 02188,Northwest Arctic,Alaska,7208.00,5,49,14,7,6,6,47,171,2,315,9,10
-02195,Petersburg,Alaska,,,,,7,,,,171,,317,,
-02198,Prince of Wales-Hyder,Alaska,,,,,7,,,,171,,317,,
+02195,Petersburg,Alaska,,,,,7,,,47,171,,317,,
+02198,Prince of Wales-Hyder,Alaska,,,,,7,,,47,171,,317,,
 02220,Sitka,Alaska,8835.00,5,49,221,7,6,6,47,171,2,317,9,346
-02230,Skagway,Alaska,,,,,7,,,,171,,317,,
+02230,Skagway,Alaska,,,,,7,,,47,171,,317,,
 02240,Southeast Fairbanks,Alaska,6174.00,5,49,136,7,6,6,47,171,2,315,9,10
 02261,Valdez-Cordova,Alaska,10195.00,5,49,14,7,6,6,47,171,2,316,9,10
 02270,Wade Hampton,Alaska,7028.00,5,49,14,7,6,6,47,171,2,315,9,10
-02275,Wrangell,Alaska,,,,,7,,,,171,,317,,
+02275,Wrangell,Alaska,,,,,7,,,47,171,,317,,
 02282,Yakutat,Alaska,808.00,5,49,221,7,6,6,47,171,2,317,9,346
 02290,Yukon-Koyukuk,Alaska,6551.00,5,49,136,7,6,6,47,171,2,315,9,10
 04001,Apache,Arizona,69423.00,4,39,162,5,5,5,39,156,3,320,39,5
@@ -250,7 +250,7 @@ FIPS,COUNTY,STATE,2KPOPULATION,RPC,MTA,BTA,REA,EAG_220,EAG_700,MEA,EA,PSR,CMA,VP
 08009,Baca,Colorado,4517.00,4,22,366,5,5,5,33,140,7,356,24,222
 08011,Bent,Colorado,5998.00,4,22,366,5,5,5,33,140,7,355,24,222
 08013,Boulder,Colorado,291288.00,4,22,110,5,5,5,33,141,7,19,25,38
-08014,Broomfield,Colorado,,,,,5,,,,141,,243,,
+08014,Broomfield,Colorado,,,,,5,,,33,141,,243,,
 08015,Chaffee,Colorado,16242.00,4,22,110,5,5,5,33,141,7,351,25,74
 08017,Cheyenne,Colorado,2231.00,4,22,110,5,5,5,33,140,7,352,24,222
 08019,Clear Creek,Colorado,9322.00,4,22,110,5,5,5,33,141,7,350,25,74
