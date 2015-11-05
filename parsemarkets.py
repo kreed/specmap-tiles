@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# Usage: ./parsemarkets.py > markets.py
+
 import csv
 from pprint import pprint
 
