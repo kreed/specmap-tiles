@@ -42,6 +42,8 @@ def canon_owner(owner):
 		return 'US Cellular'
 	if owner == 'T-Mobile License LLC' or owner == 'T-MOBILE LICENSE LLC':
 		return 'T-Mobile'
+	if owner == 'Iowa Wireless Services Holding Corporation':
+		owner = 'iWireless'
 	if owner == 'AT & T Mobility Spectrum LLC' or owner == 'AT&T Mobility Spectrum LLC' or owner == 'New Cingular Wireless PCS, LLC' or owner == 'AT&T Wireless Services 3 LLC':
 		return 'AT&T'
 	if owner.startswith('Cavalier'):
@@ -58,6 +60,7 @@ def canon_owner(owner):
 
 color_table = {
 	'T-Mobile': '#ff00ff',
+	'iWireless': '#ff9cff',
 	'C Spire': '#208dd9',
 	'AT&T': '#00FFFF',
 	'Leap Licenseco Inc.': '#00FFFF',
