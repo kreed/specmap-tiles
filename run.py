@@ -10,8 +10,28 @@ from shapely.geometry import mapping, shape
 
 from pprint import pprint
 
-radio_service = sys.argv[1]
-block = sys.argv[2]
+filename = sys.argv[1]
+filename = filename.replace('.geojson', '')
+
+radio_service_map = {
+	'700LA': ('WY', 'A'),
+	'700LB': ('WY', 'B'),
+	'700LC': ('WZ', 'C'),
+	'700UC': ('WU', 'C'),
+	'AWS1A': ('AW', 'A'),
+	'AWS1B': ('AW', 'B'),
+	'AWS1C': ('AW', 'C'),
+	'AWS1D': ('AW', 'D'),
+	'AWS1E': ('AW', 'E'),
+	'AWS1F': ('AW', 'F'),
+	'AWS3G': ('AT', 'G'),
+	'AWS3H': ('AT', 'H'),
+	'AWS3I': ('AT', 'I'),
+	'AWS3J': ('AT', 'J'),
+}
+
+radio_service, block = radio_service_map[filename]
+
 result = []
 
 con = sqlite3.connect("l_market.sqlite")
@@ -148,19 +168,8 @@ for row in q.fetchall():
 	props = feature_props(call_sign, owner, market, population)
 	result.append(geojson.Feature(properties=props, geometry=geom))
 
-def filename(rd, block):
-	if rd == 'WY' or rd == 'WZ':
-		name = '700'
-	elif rd == 'WU':
-		name = '700U'
-	elif rd == 'AW':
-		name = 'AWS'
-	elif rd == 'AT':
-		name = 'AWS3'
-	return name + block + '.geojson'
-
 result = geojson.FeatureCollection(result)
-with open(filename(radio_service, block), 'w') as out:
+with open(filename + '.geojson', 'w') as out:
 	geojson.dump(result, out)
 
 con.commit()
