@@ -22,7 +22,7 @@ def canon_owner(owner):
 		return 'US Cellular'
 	if owner == 'T-Mobile License LLC' or owner == 'T-MOBILE LICENSE LLC':
 		return 'T-Mobile'
-	if owner == 'AT & T Mobility Spectrum LLC' or owner == 'AT&T Mobility Spectrum LLC' or owner == 'New Cingular Wireless PCS, LLC':
+	if owner == 'AT & T Mobility Spectrum LLC' or owner == 'AT&T Mobility Spectrum LLC' or owner == 'New Cingular Wireless PCS, LLC' or owner == 'AT&T Wireless Services 3 LLC':
 		return 'AT&T'
 	if owner.startswith('Cavalier'):
 		return 'Cavalier'
@@ -32,6 +32,8 @@ def canon_owner(owner):
 		return 'C Spire'
 	if owner == 'Cellco Partnership' or owner == 'Verizon Wireless (VAW) LLC' or owner == 'Alltel Communications, LLC':
 		owner = 'Verizon'
+	if owner == 'SNR Wireless LicenseCo, LLC' or owner == 'Northstar Wireless, LLC':
+		owner = 'Dish Network'
 	return owner
 
 color_table = {
@@ -46,6 +48,7 @@ color_table = {
 	'Continuum 700': '#BFFF00',
 	"Sprint": '#FFFF00',
 	"Verizon": '#ff0000',
+	'Dish Network': '#ff7794',
 }
 
 def feature_props(call_sign, owner, market, population):
@@ -152,6 +155,8 @@ def filename(rd, block):
 		name = '700U'
 	elif rd == 'AW':
 		name = 'AWS'
+	elif rd == 'AT':
+		name = 'AWS3'
 	return name + block + '.geojson'
 
 result = geojson.FeatureCollection(result)
