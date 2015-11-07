@@ -83,9 +83,10 @@ color_table = {
 	'Dish Network': '#ff7794',
 }
 
-def feature_props(call_sign, owner, market, population):
+def feature_props(uls_no, call_sign, owner, market, population):
 	props = {
 		'market': market,
+		'uls_number': uls_no,
 		'call_sign': call_sign,
 		'population': '{:,}'.format(int(population)),
 		'owner': canon_owner(owner),
@@ -126,14 +127,14 @@ def lookup_county(fips):
 		codes = fips,
 	return [ shape(county_geoms[f]) for f in codes ]
 
-q = ("SELECT call_sign, entity_name, market_code, population, sum(defined_area_population) "
+q = ("SELECT HD.uls_file_number, call_sign, entity_name, market_code, population, sum(defined_area_population) "
 	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign) LEFT OUTER JOIN MP USING (call_sign) " +
 	("JOIN MF USING (call_sign) WHERE lower_frequency<{0} AND upper_frequency>{0} AND ".format(center_freq) if center_freq else "WHERE ") +
 	"license_status='A' AND radio_service_code=? AND channel_block=? AND entity_type='L' AND cancellation_date='' AND NOT call_sign LIKE 'L%' "
 	"GROUP BY call_sign")
 q = cur.execute(q, (radio_service, block))
 for row in q.fetchall():
-	call_sign, owner, market, population, part_pop = row
+	uls_no, call_sign, owner, market, population, part_pop = row
 
 	if part_pop == None:
 		# unpartitioned market
@@ -182,7 +183,7 @@ for row in q.fetchall():
 		geom = mapping(geom)
 		population = part_pop
 
-	props = feature_props(call_sign, owner, market, population)
+	props = feature_props(uls_no, call_sign, owner, market, population)
 	result.append(geojson.Feature(properties=props, geometry=geom))
 
 result = geojson.FeatureCollection(result)
