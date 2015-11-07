@@ -133,5 +133,16 @@ uls_tables = {
 	('partition_long_minutes int'),
 	('partition_long_seconds numeric(3,1)'),
 	('partition_long_direction char(1)'),
+],
+'MF': [
+	('record_type char(2)'),
+	('unique_system_identifier numeric(9,0)'),
+	('uls_file_number char(14)'),
+	('ebf_number varchar(30)'),
+	('call_sign char(10)'),
+	('partitioned_seq_num char(6)'),
+	('lower_frequency numeric(16,8)'),
+	('upper_frequency numeric(16,8)'),
+	('def_und_ind char(1)'),
 ]
 }

@@ -19,18 +19,27 @@ radio_service_map = {
 	'700LC': ('WZ', 'C'),
 	'700UC': ('WU', 'C'),
 	'AWS1A': ('AW', 'A'),
+	'AWS1A1': ('AW', 'A', 1712.5),
+	'AWS1A2': ('AW', 'A', 1717.5),
 	'AWS1B': ('AW', 'B'),
+	'AWS1B1': ('AW', 'B', 1722.5),
+	'AWS1B2': ('AW', 'B', 1727.5),
 	'AWS1C': ('AW', 'C'),
 	'AWS1D': ('AW', 'D'),
 	'AWS1E': ('AW', 'E'),
 	'AWS1F': ('AW', 'F'),
+	'AWS1F1': ('AW', 'F', 1747.5),
+	'AWS1F2': ('AW', 'F', 1752.5),
 	'AWS3G': ('AT', 'G'),
 	'AWS3H': ('AT', 'H'),
 	'AWS3I': ('AT', 'I'),
-	'AWS3J': ('AT', 'J'),
+	'AWS3J1': ('AT', 'J', 1772.5),
+	'AWS3J2': ('AT', 'J', 1777.5),
 }
 
-radio_service, block = radio_service_map[filename]
+x = radio_service_map[filename]
+radio_service, block = x[:2]
+center_freq = x[2] if len(x) == 3 else None
 
 result = []
 
@@ -117,7 +126,12 @@ def lookup_county(fips):
 		codes = fips,
 	return [ shape(county_geoms[f]) for f in codes ]
 
-q = cur.execute("SELECT call_sign, entity_name, market_code, population, sum(defined_area_population) FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign) LEFT OUTER JOIN MP USING (call_sign) WHERE license_status='A' AND radio_service_code=? AND channel_block=? AND entity_type='L' AND cancellation_date='' AND NOT call_sign LIKE 'L%' GROUP BY call_sign", (radio_service, block))
+q = ("SELECT call_sign, entity_name, market_code, population, sum(defined_area_population) "
+	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign) LEFT OUTER JOIN MP USING (call_sign) " +
+	("JOIN MF USING (call_sign) WHERE lower_frequency<{0} AND upper_frequency>{0} AND ".format(center_freq) if center_freq else "WHERE ") +
+	"license_status='A' AND radio_service_code=? AND channel_block=? AND entity_type='L' AND cancellation_date='' AND NOT call_sign LIKE 'L%' "
+	"GROUP BY call_sign")
+q = cur.execute(q, (radio_service, block))
 for row in q.fetchall():
 	call_sign, owner, market, population, part_pop = row
 
