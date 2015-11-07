@@ -1,19 +1,12 @@
 #!/usr/bin/env python3
 
-from pprint import pprint
-from tables import uls_tables
-import csv
-import csv
-import geojson
 import io
-import pickle
 import sqlite3
-import sys
 import zipfile
+from tables import uls_tables
 
 con = sqlite3.connect("l_market.sqlite")
 cur = con.cursor()
-
 
 with zipfile.ZipFile('l_market.zip', 'r') as inzip:
 	for table, cols in uls_tables.items():
