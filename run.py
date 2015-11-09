@@ -127,7 +127,7 @@ def lookup_county(fips):
 		codes = fips,
 	return [ shape(county_geoms[f]) for f in codes ]
 
-q = ("SELECT HD.uls_file_number, call_sign, entity_name, market_code, population, sum(defined_area_population) "
+q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, market_code, population, sum(defined_area_population) "
 	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign) LEFT OUTER JOIN MP USING (call_sign) " +
 	("JOIN MF USING (call_sign) WHERE lower_frequency<{0} AND upper_frequency>{0} AND ".format(center_freq) if center_freq else "WHERE ") +
 	"license_status='A' AND radio_service_code=? AND channel_block=? AND entity_type='L' AND cancellation_date='' AND NOT call_sign LIKE 'L%' "
@@ -143,7 +143,10 @@ for row in q.fetchall():
 		add_parts = []
 		sub_parts = []
 
-		q = cur.execute('SELECT market_partition_code, defined_partition_area, include_exclude_ind, partitioned_seq_num, def_und_ind FROM MP WHERE call_sign=?', (call_sign,))
+		q = ('SELECT market_partition_code, defined_partition_area, include_exclude_ind, partitioned_seq_num, MP.def_und_ind FROM MP ' +
+			("JOIN MF USING (call_sign, partitioned_seq_num) WHERE lower_frequency<{0} AND upper_frequency>{0} AND ".format(center_freq) if center_freq else "WHERE ") +
+			'call_sign=?')
+		q = cur.execute(q, (call_sign,))
 		for row in q.fetchall():
 			part_market, area_name, inc_exc, part_seq, def_und = row
 
