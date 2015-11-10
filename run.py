@@ -100,33 +100,6 @@ def parse_dms(d, m, s, direc):
 	r = r * (-1 if direc in ('S', 'W') else 1)
 	return round(r, 6)
 
-def lookup_county(fips):
-	if fips == '02231':
-		codes = '02282','02105','02230'
-	elif fips == '02201':
-		codes = '02198','02275'
-	elif fips == '02280':
-		codes = '02195',
-	elif fips == '51560':
-		# merged with 51005
-		codes = ()
-	elif fips == '51780':
-		# merged with 51083
-		codes = ()
-	elif fips == '51515':
-		# merged with 51019
-		codes = ()
-	elif fips == '12025':
-		codes = '12086',
-	elif fips == '30113':
-		# merged into 30067 and 30031
-		codes = ()
-	elif fips == '08013':
-		codes = '08013', '08014'
-	else:
-		codes = fips,
-	return [ shape(county_geoms[f]) for f in codes ]
-
 q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, market_code, population, sum(defined_area_population) "
 	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign) LEFT OUTER JOIN MP USING (call_sign) " +
 	("JOIN MF USING (call_sign) WHERE lower_frequency<{0} AND upper_frequency>{0} AND ".format(center_freq) if center_freq else "WHERE ") +
@@ -135,6 +108,10 @@ q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, market_code, p
 q = cur.execute(q, (radio_service, block))
 for row in q.fetchall():
 	uls_no, call_sign, owner, market, population, part_pop = row
+
+	if market in ('REA012', 'CMA306', 'BEA176', 'MEA052'):
+		# Gulf of Mexico
+		continue
 
 	if part_pop == None:
 		# unpartitioned market
@@ -156,7 +133,7 @@ for row in q.fetchall():
 					if match:
 						if not match.group(1) in county_geoms:
 							print(call_sign, *row)
-						add_parts = add_parts + lookup_county(match.group(1))
+						add_parts.append(shape(county_geoms[match.group(1)]))
 					else:
 						print('non-county partition', row, file=sys.stderr)
 						add_parts.append(shape(market_geoms[part_market]))
