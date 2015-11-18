@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import geojson
+import os
 import re
 import sqlite3
 import sys
@@ -9,9 +10,6 @@ from geoms import county_geoms, market_geoms
 from shapely.geometry import mapping, shape
 
 from pprint import pprint
-
-filename = sys.argv[1]
-filename = filename.replace('.geojson', '')
 
 radio_service_map = {
 	'700LA': ('WY', 'A'),
@@ -37,13 +35,14 @@ radio_service_map = {
 	'AWS3J2': ('AT', 'J', 1777.5),
 }
 
-x = radio_service_map[filename]
+filename = sys.argv[1]
+x = radio_service_map[os.path.basename(filename).replace('.geojson', '')]
 radio_service, block = x[:2]
 center_freq = x[2] if len(x) == 3 else None
 
 result = []
 
-con = sqlite3.connect("l_market.sqlite")
+con = sqlite3.connect(os.path.dirname(os.path.realpath(__file__)) + "/l_market.sqlite")
 cur = con.cursor()
 
 def canon_owner(owner):
@@ -167,7 +166,7 @@ for row in q.fetchall():
 	result.append(geojson.Feature(properties=props, geometry=geom))
 
 result = geojson.FeatureCollection(result)
-with open(filename + '.geojson', 'w') as out:
+with open(filename, 'w') as out:
 	geojson.dump(result, out)
 
 con.commit()
