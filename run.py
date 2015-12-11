@@ -33,6 +33,19 @@ radio_service_map = {
 	'AWS3I': ('AT', 'I'),
 	'AWS3J1': ('AT', 'J', 1772.5),
 	'AWS3J2': ('AT', 'J', 1777.5),
+	'PCSA1': ('CW', 'A', 1852.5),
+	'PCSA2': ('CW', 'A', 1857.5),
+	'PCSA3': ('CW', 'A', 1862.5),
+	'PCSD': ('CW', 'D'),
+	'PCSB1': ('CW', 'B', 1872.5),
+	'PCSB2': ('CW', 'B', 1877.5),
+	'PCSB3': ('CW', 'B', 1882.5),
+	'PCSE': ('CW', 'E'),
+	'PCSF': ('CW', 'F'),
+	'PCSC1': ('CW', 'C', 1897.5),
+	'PCSC2': ('CW', 'C', 1902.5),
+	'PCSC3': ('CW', 'C', 1907.5),
+	'PCSG': ('CY', 'G'),
 }
 
 filename = sys.argv[1]

@@ -39,6 +39,16 @@ for county in counties.features:
 		markets[mea] = []
 	markets[mea].append(p['FIPS'])
 
+	bta = 'BTA%03d' % int(p['BTA'])
+	if not bta in markets:
+		markets[bta] = []
+	markets[bta].append(p['FIPS'])
+
+	mta = 'MTA%03d' % int(p['MTA'])
+	if not mta in markets:
+		markets[mta] = []
+	markets[mta].append(p['FIPS'])
+
 market_geoms = {}
 
 for market, mcounties in markets.items():
