@@ -59,7 +59,7 @@ con = sqlite3.connect(os.path.dirname(os.path.realpath(__file__)) + "/l_market.s
 cur = con.cursor()
 
 def canon_owner(owner):
-	if owner.startswith('USCOC') or owner == 'King Street Wireless, LP' or owner == 'UNITED STATES CELLULAR OPERATING COMPANY LLC' or owner == 'CARROLL WIRELESS, LP' or owner == 'BARAT WIRELESS, L.P.':
+	if owner.startswith('USCOC') or owner == 'King Street Wireless, LP' or owner == 'UNITED STATES CELLULAR OPERATING COMPANY LLC' or owner == 'CARROLL WIRELESS, LP' or owner == 'BARAT WIRELESS, L.P.' or owner == 'HARDY CELLULAR TELEPHONE COMPANY':
 		return 'US Cellular'
 	if owner == 'T-Mobile License LLC' or owner == 'T-MOBILE LICENSE LLC':
 		return 'T-Mobile'
