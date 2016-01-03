@@ -7,7 +7,8 @@ import sqlite3
 import sys
 import shapely.ops
 from geoms import county_geoms, market_geoms
-from shapely.geometry import mapping, shape
+from shapely.geometry import mapping, shape, GeometryCollection, MultiPolygon, Polygon
+from specrange import SpectrumRanges
 
 from pprint import pprint
 
@@ -17,41 +18,27 @@ radio_service_map = {
 	'700LC': ('WZ', 'C'),
 	'700UC': ('WU', 'C'),
 	'AWS1A': ('AW', 'A'),
-	'AWS1A1': ('AW', 'A', 1712.5),
-	'AWS1A2': ('AW', 'A', 1717.5),
 	'AWS1B': ('AW', 'B'),
-	'AWS1B1': ('AW', 'B', 1722.5),
-	'AWS1B2': ('AW', 'B', 1727.5),
 	'AWS1C': ('AW', 'C'),
 	'AWS1D': ('AW', 'D'),
 	'AWS1E': ('AW', 'E'),
 	'AWS1F': ('AW', 'F'),
-	'AWS1F1': ('AW', 'F', 1747.5),
-	'AWS1F2': ('AW', 'F', 1752.5),
 	'AWS3G': ('AT', 'G'),
 	'AWS3H': ('AT', 'H'),
 	'AWS3I': ('AT', 'I'),
-	'AWS3J1': ('AT', 'J', 1772.5),
-	'AWS3J2': ('AT', 'J', 1777.5),
-	'PCSA1': ('CW', 'A', 1852.5),
-	'PCSA2': ('CW', 'A', 1857.5),
-	'PCSA3': ('CW', 'A', 1862.5),
+	'AWS3J': ('AT', 'J'),
+	'PCSA': ('CW', 'A'),
+	'PCSB': ('CW', 'B'),
+	'PCSC': ('CW', 'C'),
 	'PCSD': ('CW', 'D'),
-	'PCSB1': ('CW', 'B', 1872.5),
-	'PCSB2': ('CW', 'B', 1877.5),
-	'PCSB3': ('CW', 'B', 1882.5),
 	'PCSE': ('CW', 'E'),
 	'PCSF': ('CW', 'F'),
-	'PCSC1': ('CW', 'C', 1897.5),
-	'PCSC2': ('CW', 'C', 1902.5),
-	'PCSC3': ('CW', 'C', 1907.5),
 	'PCSG': ('CY', 'G'),
 }
 
 filename = sys.argv[1]
 x = radio_service_map[os.path.basename(filename).replace('.geojson', '')]
 radio_service, block = x[:2]
-center_freq = x[2] if len(x) == 3 else None
 
 result = []
 
@@ -64,7 +51,7 @@ def canon_owner(owner):
 	if owner == 'T-Mobile License LLC' or owner == 'T-MOBILE LICENSE LLC':
 		return 'T-Mobile'
 	if owner == 'Iowa Wireless Services Holding Corporation':
-		owner = 'iWireless'
+		return 'iWireless'
 	if owner == 'AT & T Mobility Spectrum LLC' or owner == 'AT&T Mobility Spectrum LLC' or owner == 'New Cingular Wireless PCS, LLC' or owner == 'AT&T Wireless Services 3 LLC':
 		return 'AT&T'
 	if owner.startswith('Cavalier'):
@@ -74,9 +61,9 @@ def canon_owner(owner):
 	if owner == 'Cellular South Licenses, LLC':
 		return 'C Spire'
 	if owner == 'Cellco Partnership' or owner == 'Verizon Wireless (VAW) LLC' or owner == 'Alltel Communications, LLC':
-		owner = 'Verizon'
+		return 'Verizon'
 	if owner == 'SNR Wireless LicenseCo, LLC' or owner == 'Northstar Wireless, LLC':
-		owner = 'Dish Network'
+		return 'Dish Network'
 	return owner
 
 color_table = {
@@ -95,13 +82,15 @@ color_table = {
 	'Dish Network': '#ff7794',
 }
 
-def feature_props(uls_no, call_sign, owner, market, population):
+def feature_props(uls_no, call_sign, owner, market, population, freq):
 	props = {
 		'market': market,
 		'uls_number': uls_no,
 		'call_sign': call_sign,
 		'population': '{:,}'.format(int(population)),
 		'owner': canon_owner(owner),
+		'downlink': freq.downlink(),
+		'uplink': freq.uplink(),
 	}
 	if props['owner'] in color_table:
 		props['fill'] = color_table[props['owner']]
@@ -112,71 +101,136 @@ def parse_dms(d, m, s, direc):
 	r = r * (-1 if direc in ('S', 'W') else 1)
 	return round(r, 6)
 
-q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, market_code, population, sum(defined_area_population) "
-	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign) LEFT OUTER JOIN MP USING (call_sign) " +
-	("JOIN MF USING (call_sign) WHERE lower_frequency<{0} AND upper_frequency>{0} AND ".format(center_freq) if center_freq else "WHERE ") +
-	"license_status='A' AND radio_service_code=? AND channel_block=? AND entity_type='L' AND cancellation_date='' AND NOT call_sign LIKE 'L%' "
-	"GROUP BY call_sign")
-q = cur.execute(q, (radio_service, block))
-for row in q.fetchall():
-	uls_no, call_sign, owner, market, population, part_pop = row
+def approx_within(needle, haystack):
+	""" test if most of needle (>99.5%) is inside haystack """
+	return needle.difference(haystack).area / needle.area < .005
 
-	if market in ('REA012', 'CMA306', 'BEA176', 'MEA052'):
-		# Gulf of Mexico
+q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, market_code, population, submarket_code "
+	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign)"
+	"WHERE radio_service_code=? AND channel_block=? "  # select the given spectrum block
+	"AND entity_type='L' "                             # we want the owner (L), not the contact (CL)
+	"AND license_status='A' AND cancellation_date='' " # exclude inactive licenses
+	"AND NOT call_sign LIKE 'L%' "                     # exclude leases
+	"AND NOT market_code IN ('REA012', 'CMA306', 'BEA176', 'MEA052')") # exclude Gulf of Mexico
+q = cur.execute(q, (radio_service, block))
+for uls_no, call_sign, owner, market, market_pop, submarket_code in q.fetchall():
+	print(uls_no, call_sign)
+
+	q = ("SELECT partitioned_seq_num, def_und_ind, GROUP_CONCAT(lower_frequency||'-'||upper_frequency) FROM MF WHERE call_sign=? GROUP BY partitioned_seq_num, def_und_ind")
+	q = cur.execute(q, (call_sign,)).fetchall()
+
+	if len(q) == 0:
+		print(uls_no, call_sign, "no frequencies given")
 		continue
 
-	if part_pop == None:
-		# unpartitioned market
-		geom = market_geoms[market]
-	else:
-		add_parts = []
-		sub_parts = []
+	if [ seq_num for seq_num, def_und, freq in q if seq_num.startswith('ISA') ]:
+		# need geo data for Iowa Study Areas
+		print(uls_no, call_sign, "skipping Iowa Study Area")
+		continue
 
-		q = ('SELECT market_partition_code, defined_partition_area, include_exclude_ind, partitioned_seq_num, MP.def_und_ind FROM MP ' +
-			("JOIN MF USING (call_sign, partitioned_seq_num) WHERE lower_frequency<{0} AND upper_frequency>{0} AND ".format(center_freq) if center_freq else "WHERE ") +
-			'call_sign=?')
-		q = cur.execute(q, (call_sign,))
-		for row in q.fetchall():
-			part_market, area_name, inc_exc, part_seq, def_und = row
+	if submarket_code == 0:
+		assert len(q) == 1, "%s submarket_code is 0 but license has multiple partitions" % call_sign
+		props = feature_props(uls_no, call_sign, owner, market, market_pop, SpectrumRanges.fromstr(q[0][2]))
+		result.append(geojson.Feature(properties=props, geometry=market_geoms[market]))
+		continue
+
+	add_parts = {}
+	sub_parts = {}
+
+	for seq_num, def_und, freq in q:
+		freq = SpectrumRanges.fromstr(freq)
+
+		q = ('SELECT market_partition_code, defined_partition_area, defined_area_population, include_exclude_ind FROM MP WHERE call_sign=? AND partitioned_seq_num=? AND def_und_ind=?')
+		q = cur.execute(q, (call_sign, seq_num, def_und)).fetchall()
+
+		assert len(q) > 0, "no partition info %s %s %s" % (call_sign, seq_num, def_und)
+		for part_market, area_name, part_pop, inc_exc in q:
+			if part_pop == '':
+				part_pop = 0
 
 			if def_und == 'D':
-				if inc_exc == 'I':
-					match = re.match('(\d{5}): .*', area_name)
-					if match:
-						if not match.group(1) in county_geoms:
-							print(call_sign, *row)
-						add_parts.append(shape(county_geoms[match.group(1)]))
-					else:
-						print('non-county partition', row, file=sys.stderr)
-						add_parts.append(shape(market_geoms[part_market]))
+				assert inc_exc == 'I', "defined exclude not implemented"
+				match = re.match('(\d{5}): .*', area_name)
+				if match:
+					assert match.group(1) in county_geoms, "missing county %s %s %s" % (call_sign, part_market, area_name)
+					geom = shape(county_geoms[match.group(1)])
 				else:
-					print('FIXME: defined exclude not implemeted', file=sys.stderr)
-					sys.exit(-1)
+					geom = shape(market_geoms[part_market])
 			else:
 				points = []
-				for row in cur.execute('SELECT partition_lat_degrees, partition_lat_minutes, partition_lat_seconds, partition_lat_direction, partition_long_degrees, partition_long_minutes, partition_long_seconds, partition_long_direction, partition_sequence_number FROM MC WHERE call_sign=? AND undefined_partitioned_area=? ORDER BY partition_sequence_number', (call_sign, part_seq)):
+				for row in cur.execute('SELECT partition_lat_degrees, partition_lat_minutes, partition_lat_seconds, partition_lat_direction, partition_long_degrees, partition_long_minutes, partition_long_seconds, partition_long_direction, partition_sequence_number FROM MC WHERE call_sign=? AND undefined_partitioned_area=? ORDER BY partition_sequence_number', (call_sign, seq_num)):
 					lat = parse_dms(*row[0:4])
 					lng = parse_dms(*row[4:8])
 					points.append((lng, lat))
 				points.append(points[0])
-				f = shape(geojson.Polygon([points]))
-				if not f.is_valid:
-					print(call_sign, part_seq, 'invalid geometry', file=sys.stderr)
-					f = f.buffer(0)
-				if inc_exc == 'I':
-					add_parts.append(f)
-				else:
-					sub_parts.append(f)
+				geom = shape(geojson.Polygon([points]))
+				if not geom.is_valid:
+					print(uls_no, call_sign, 'invalid geometry, partition', seq_num)
+					geom = geom.buffer(0)
 
-		geom = shapely.ops.unary_union(add_parts)
-		if len(sub_parts):
-			sub_merged = shapely.ops.unary_union(sub_parts)
-			geom = geom.difference(sub_merged)
-		geom = mapping(geom)
-		population = part_pop
+			dest_list = add_parts if inc_exc == 'I' else sub_parts
+			if not freq in dest_list:
+				dest_list[freq] = []
+			dest_list[freq].append((geom, part_pop))
 
-	props = feature_props(uls_no, call_sign, owner, market, population)
-	result.append(geojson.Feature(properties=props, geometry=geom))
+	assert len(add_parts) > 0, "no geometries included %s" % call_sign
+
+	freqs = {}
+
+	for freq, parts in add_parts.items():
+		geom = shapely.ops.unary_union([ p[0] for p in parts ])
+		pop = sum([ p[1] for p in parts ])
+		freqs[freq] = (geom, pop)
+
+	for freq, parts in sub_parts.items():
+		geom = shapely.ops.unary_union([ p[0] for p in parts ])
+		pop = sum([ p[1] for p in parts ])
+
+		intersects = 0
+		remaining_geom = geom
+		for f in list(freqs.keys()):
+			if not f.contains(freq):
+				continue
+
+			intersection = remaining_geom.intersection(freqs[f][0])
+			if intersection.area / geom.area > .01:
+				intersects += 1
+
+				if f != freq:
+					add_freq = f.difference(freq)
+					if add_freq in freqs:
+						add_geom, add_pop = freqs[add_freq]
+						freqs[add_freq] = (add_geom.union(intersection), add_pop + pop)
+					else:
+						freqs[add_freq] = (remaining_geom, pop)
+
+				parent_geom, parent_pop = freqs[f]
+				freqs[f] = (parent_geom.difference(remaining_geom), parent_pop - pop)
+
+				remaining_geom = remaining_geom.difference(parent_geom)
+				if remaining_geom.area / geom.area < .01:
+					break
+
+		if remaining_geom.area / geom.area >= .01:
+			with open('rem.geojson', 'w') as out:
+				features = geojson.FeatureCollection([ geojson.Feature(properties={'freq':str(e[0])},geometry=mapping(e[1][0])) for e in [(freq,(remaining_geom,pop))]])
+				geojson.dump(features, out)
+
+		if intersects > 1:
+			print(uls_no, call_sign, 'intersects:', intersects)
+
+		if uls_no != 8938: # this license has some bogus geodata with a large overlapping area
+			assert remaining_geom.area / geom.area < .01, "large remaining geom %s %s" % (uls_no, call_sign)
+
+	for freq, part in freqs.items():
+		geom, population = part
+
+		if type(geom) is GeometryCollection:
+			print(uls_no, call_sign, "removing non-polygons from geometry")
+			geom = MultiPolygon([ p for p in geom if type(p) is Polygon ])
+
+		props = feature_props(uls_no, call_sign, owner, market, population, freq)
+		result.append(geojson.Feature(properties=props, geometry=mapping(geom)))
 
 result = geojson.FeatureCollection(result)
 with open(filename, 'w') as out:
