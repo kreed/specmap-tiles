@@ -37,8 +37,8 @@ radio_service_map = {
 }
 
 filename = sys.argv[1]
-x = radio_service_map[os.path.basename(filename).replace('.geojson', '')]
-radio_service, block = x[:2]
+radio_service = os.path.basename(filename).replace('.geojson', '')
+radio_service_code, block_code = radio_service_map[radio_service]
 
 result = []
 
@@ -97,6 +97,7 @@ color_table = {
 
 def feature_props(uls_no, call_sign, owner, email, market, population, freq):
 	props = {
+		'block': radio_service,
 		'market': market,
 		'uls_number': uls_no,
 		'call_sign': call_sign,
@@ -130,7 +131,7 @@ q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, email, market_
 	"AND license_status='A' AND cancellation_date='' " # exclude inactive licenses
 	"AND NOT call_sign LIKE 'L%' "                     # exclude leases
 	"AND NOT market_code IN ('REA012', 'CMA306', 'BEA176', 'MEA052')") # exclude Gulf of Mexico
-q = cur.execute(q, (radio_service, block))
+q = cur.execute(q, (radio_service_code, block_code))
 for uls_no, call_sign, owner, email, market, market_pop, submarket_code in q.fetchall():
 	print(uls_no, call_sign)
 
