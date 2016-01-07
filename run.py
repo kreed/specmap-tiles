@@ -229,16 +229,11 @@ for uls_no, call_sign, owner, email, market, market_pop, submarket_code in q.fet
 				if remaining_geom.area / geom.area < .01:
 					break
 
-		if remaining_geom.area / geom.area >= .01:
-			with open('rem.geojson', 'w') as out:
-				features = geojson.FeatureCollection([ geojson.Feature(properties={'freq':str(e[0])},geometry=mapping(e[1][0])) for e in [(freq,(remaining_geom,pop))]])
-				geojson.dump(features, out)
-
 		if intersects > 1:
 			print(uls_no, call_sign, 'intersects:', intersects)
 
-		if uls_no != 8938: # this license has some bogus geodata with a large overlapping area
-			assert remaining_geom.area / geom.area < .01, "large remaining geom %s %s" % (uls_no, call_sign)
+		if remaining_geom.area / geom.area >= .01:
+			print(uls_no, call_sign, "large remaining exclude geometry (%.3f%% of original area)" % (100 * remaining_geom.area / geom.area))
 
 	for freq, part in freqs.items():
 		geom, population = part
