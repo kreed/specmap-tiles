@@ -18,5 +18,22 @@ with zipfile.ZipFile('l_market.zip', 'r') as inzip:
 				if len(row) == len(cols):
 					cur.execute('INSERT INTO ' + table + ' VALUES(' + (len(cols) * '?,')[:-1] + ')', row)
 
+with open('fix.dat') as infile:
+	for row in infile:
+		delete = False
+		if row[0] == '-':
+			delete = True
+			row = row[1:]
+
+		row = row.strip().split("|")
+		table = row[0]
+		cols = uls_tables[table]
+
+		if len(row) == len(cols):
+			if delete:
+				cur.execute('DELETE FROM ' + table + ' WHERE ' + (' AND '.join([ col.split(' ')[0] + '=?' for col in cols ])), row)
+			else:
+				cur.execute('INSERT INTO ' + table + ' VALUES(' + (len(cols) * '?,')[:-1] + ')', row)
+
 con.commit()
 con.close()
