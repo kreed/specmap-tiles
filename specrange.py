@@ -1,6 +1,6 @@
 class SpectrumRange:
 	def __init__(self, lower, upper):
-		assert lower <= upper, "%f-%f" % (lower, upper)
+		assert lower < upper, "%f-%f" % (lower, upper)
 		self.lower, self.upper = lower, upper
 
 	def overlaps(self, other):
@@ -36,9 +36,14 @@ class SpectrumRange:
 class SpectrumRanges:
 	@classmethod
 	def fromstr(cls, s):
-		return cls(*[ SpectrumRange(*[float(f) for f in pair.split('-') ]) for pair in s.split(',') ])
+		rngs = []
+		for pair in s.split(','):
+			lower, upper = [ float(f) for f in pair.split('-') ]
+			if lower != upper:
+				rngs.append(SpectrumRange(lower, upper))
+		return cls(rngs)
 
-	def __init__(self, *ranges):
+	def __init__(self, ranges):
 		rngs = []
 
 		def add(item):
@@ -88,7 +93,7 @@ class SpectrumRanges:
 			else:
 				newrngs.append(thisrng)
 
-		return SpectrumRanges(*newrngs)
+		return SpectrumRanges(newrngs)
 
 	def __repr__(self):
 		return ','.join([ str(e) for e in self.ranges])
