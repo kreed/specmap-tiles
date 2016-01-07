@@ -45,26 +45,39 @@ result = []
 con = sqlite3.connect(os.path.dirname(os.path.realpath(__file__)) + "/l_market.sqlite")
 cur = con.cursor()
 
-def canon_owner(owner):
-	if owner.startswith('USCOC') or owner == 'King Street Wireless, LP' or owner == 'UNITED STATES CELLULAR OPERATING COMPANY LLC' or owner == 'CARROLL WIRELESS, LP' or owner == 'BARAT WIRELESS, L.P.' or owner == 'HARDY CELLULAR TELEPHONE COMPANY':
-		return 'US Cellular'
-	if owner == 'T-Mobile License LLC' or owner == 'T-MOBILE LICENSE LLC':
+def canon_owner(owner, email):
+	owner, email = owner.lower(), email.lower()
+
+	if email.endswith('t-mobile.com'):
 		return 'T-Mobile'
-	if owner == 'Iowa Wireless Services Holding Corporation':
-		return 'iWireless'
-	if owner == 'AT & T Mobility Spectrum LLC' or owner == 'AT&T Mobility Spectrum LLC' or owner == 'New Cingular Wireless PCS, LLC' or owner == 'AT&T Wireless Services 3 LLC':
-		return 'AT&T'
-	if owner.startswith('Cavalier'):
-		return 'Cavalier'
-	if owner.startswith('C700'):
-		return 'Continuum 700'
-	if owner == 'Cellular South Licenses, LLC':
-		return 'C Spire'
-	if owner == 'Cellco Partnership' or owner == 'Verizon Wireless (VAW) LLC' or owner == 'Alltel Communications, LLC':
+	if email.endswith('verizonwireless.com'):
 		return 'Verizon'
-	if owner == 'SNR Wireless LicenseCo, LLC' or owner == 'Northstar Wireless, LLC':
+	if email.endswith('att.com'):
+		return 'AT&T'
+	if email.endswith('sprint.com'):
+		return 'Sprint'
+
+	if owner.startswith('uscoc') or owner == 'king street wireless, lp' or owner == 'united states cellular operating company llc' or owner == 'carroll wireless, lp' or owner == 'barat wireless, l.p.' or owner == 'hardy cellular telephone company':
+		return 'US Cellular'
+	if owner.startswith('wirelessco') or 'sprint' in owner:
+		return 'Sprint'
+	if 't-mobile' in owner:
+		return 'T-Mobile'
+	if 'iowa wireless' in owner:
+		return 'iWireless'
+	if 'at&t' in owner or 'a t & t' in owner or 'cingular' in owner:
+		return 'AT&T'
+	if owner.startswith('cavalier'):
+		return 'Cavalier'
+	if owner.startswith('c700'):
+		return 'Continuum 700'
+	if owner == 'cellular south licenses, llc':
+		return 'C Spire'
+	if owner == 'cellco partnership' or 'verizon' in owner or 'alltell' in owner:
+		return 'Verizon'
+	if owner == 'snr wireless licenseco, llc' or owner == 'northstar wireless, llc':
 		return 'Dish Network'
-	return owner
+	return None
 
 color_table = {
 	'T-Mobile': '#ff00ff',
@@ -82,18 +95,23 @@ color_table = {
 	'Dish Network': '#ff7794',
 }
 
-def feature_props(uls_no, call_sign, owner, market, population, freq):
+def feature_props(uls_no, call_sign, owner, email, market, population, freq):
 	props = {
 		'market': market,
 		'uls_number': uls_no,
 		'call_sign': call_sign,
 		'population': '{:,}'.format(int(population)),
-		'owner': canon_owner(owner),
+		'owner': owner,
 		'downlink': freq.downlink(),
 		'uplink': freq.uplink(),
 	}
-	if props['owner'] in color_table:
-		props['fill'] = color_table[props['owner']]
+
+	common = canon_owner(owner, email)
+	if common:
+		props['owner_common_name'] = common
+		if common in color_table:
+			props['fill'] = color_table[common]
+
 	return props
 
 def parse_dms(d, m, s, direc):
@@ -105,7 +123,7 @@ def approx_within(needle, haystack):
 	""" test if most of needle (>99.5%) is inside haystack """
 	return needle.difference(haystack).area / needle.area < .005
 
-q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, market_code, population, submarket_code "
+q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, email, market_code, population, submarket_code "
 	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign)"
 	"WHERE radio_service_code=? AND channel_block=? "  # select the given spectrum block
 	"AND entity_type='L' "                             # we want the owner (L), not the contact (CL)
@@ -113,7 +131,7 @@ q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, market_code, p
 	"AND NOT call_sign LIKE 'L%' "                     # exclude leases
 	"AND NOT market_code IN ('REA012', 'CMA306', 'BEA176', 'MEA052')") # exclude Gulf of Mexico
 q = cur.execute(q, (radio_service, block))
-for uls_no, call_sign, owner, market, market_pop, submarket_code in q.fetchall():
+for uls_no, call_sign, owner, email, market, market_pop, submarket_code in q.fetchall():
 	print(uls_no, call_sign)
 
 	q = ("SELECT partitioned_seq_num, def_und_ind, GROUP_CONCAT(lower_frequency||'-'||upper_frequency) FROM MF WHERE call_sign=? GROUP BY partitioned_seq_num, def_und_ind")
@@ -130,7 +148,7 @@ for uls_no, call_sign, owner, market, market_pop, submarket_code in q.fetchall()
 
 	if submarket_code == 0:
 		assert len(q) == 1, "%s submarket_code is 0 but license has multiple partitions" % call_sign
-		props = feature_props(uls_no, call_sign, owner, market, market_pop, SpectrumRanges.fromstr(q[0][2]))
+		props = feature_props(uls_no, call_sign, owner, email, market, market_pop, SpectrumRanges.fromstr(q[0][2]))
 		result.append(geojson.Feature(properties=props, geometry=market_geoms[market]))
 		continue
 
@@ -229,7 +247,7 @@ for uls_no, call_sign, owner, market, market_pop, submarket_code in q.fetchall()
 			print(uls_no, call_sign, "removing non-polygons from geometry")
 			geom = MultiPolygon([ p for p in geom if type(p) is Polygon ])
 
-		props = feature_props(uls_no, call_sign, owner, market, population, freq)
+		props = feature_props(uls_no, call_sign, owner, email, market, population, freq)
 		result.append(geojson.Feature(properties=props, geometry=mapping(geom)))
 
 result = geojson.FeatureCollection(result)
