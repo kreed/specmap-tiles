@@ -56,10 +56,16 @@ def canon_owner(owner, email):
 		return 'AT&T'
 	if email.endswith('sprint.com'):
 		return 'Sprint'
+	if email.endswith('wcc.net'):
+		return 'West Central Wireless'
+	if email.endswith('cellonenation.com'):
+		return 'Cellular One (Chinook)'
+	if email.endswith('dish.com') or email.endswith('dishnetwork.com'):
+		return 'Dish Network'
 
 	if owner.startswith('uscoc') or owner == 'king street wireless, lp' or owner == 'united states cellular operating company llc' or owner == 'carroll wireless, lp' or owner == 'barat wireless, l.p.' or owner == 'hardy cellular telephone company':
 		return 'US Cellular'
-	if owner.startswith('wirelessco') or 'sprint' in owner:
+	if owner.startswith('wirelessco') or 'sprint' in owner or 'nextel' in owner:
 		return 'Sprint'
 	if 't-mobile' in owner:
 		return 'T-Mobile'
@@ -71,12 +77,16 @@ def canon_owner(owner, email):
 		return 'Cavalier'
 	if owner.startswith('c700'):
 		return 'Continuum 700'
-	if owner == 'cellular south licenses, llc':
+	if 'cellular south' in owner:
 		return 'C Spire'
 	if owner == 'cellco partnership' or 'verizon' in owner or 'alltell' in owner:
 		return 'Verizon'
-	if owner == 'snr wireless licenseco, llc' or owner == 'northstar wireless, llc':
+	if 'snr wireless' in owner or 'northstar wireless' in owner:
 		return 'Dish Network'
+	if 'ab license co' in owner:
+		return 'AB License Co'
+	if 'ct cube' in owner or 'central texas telephone' in owner:
+		return 'West Central Wireless'
 	return None
 
 color_table = {
