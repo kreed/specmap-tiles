@@ -22,7 +22,7 @@ class SpectrumRange:
 			yield SpectrumRange(subfreq.upper, self.upper)
 
 	def __repr__(self):
-		return "%f-%f" % (self.lower, self.upper)
+		return "{:g}-{:g}".format(self.lower, self.upper)
 
 	def __hash__(self):
 		return hash((self.lower, self.upper))
@@ -61,10 +61,10 @@ class SpectrumRanges:
 		self.ranges = tuple(sorted(rngs))
 
 	def downlink(self):
-		return list([ (e.lower, e.upper) for e in self.ranges[:len(self.ranges)//2] ])
+		return ','.join([ repr(e) for e in self.ranges[:len(self.ranges)//2] ])
 
 	def uplink(self):
-		return list([ (e.lower, e.upper) for e in self.ranges[len(self.ranges)//2:] ])
+		return ','.join([ repr(e) for e in self.ranges[len(self.ranges)//2:] ])
 
 	def contains(self, otherrngs):
 		for otherrng in otherrngs.ranges:
