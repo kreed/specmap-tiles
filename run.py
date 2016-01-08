@@ -34,6 +34,8 @@ radio_service_map = {
 	'PCSE': ('CW', 'E'),
 	'PCSF': ('CW', 'F'),
 	'PCSG': ('CY', 'G'),
+	'WCSA': ('WS', 'A'),
+	'WCSB': ('WS', 'B'),
 }
 
 filename = sys.argv[1]
