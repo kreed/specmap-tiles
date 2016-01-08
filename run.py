@@ -64,6 +64,8 @@ def owner_dba(owner, email):
 		return 'Cellular One (Chinook)'
 	if email.endswith('dish.com') or email.endswith('dishnetwork.com'):
 		return 'Dish Network'
+	if email.endswith('viaero.com'):
+		return 'Viaero Wireless'
 
 	if owner.startswith('wirelessco') or 'sprint' in owner or 'nextel' in owner:
 		return 'Sprint'
@@ -105,6 +107,10 @@ def owner_dba(owner, email):
 		return 'Appalachian Wireless'
 	if 'nemont communications' in owner:
 		return 'Nemont'
+	if 'triangle communication' in owner:
+		return 'Triangle Communications'
+	if 's&t telephone' in owner:
+		return 'S&T Telephone Coop'
 	return None
 
 color_table = {
