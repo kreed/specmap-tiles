@@ -161,7 +161,7 @@ q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, email, market_
 	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign)"
 	"WHERE radio_service_code=? AND channel_block=? "  # select the given spectrum block
 	"AND entity_type='L' "                             # we want the owner (L), not the contact (CL)
-	"AND license_status='A' AND cancellation_date='' " # exclude inactive licenses
+	"AND license_status='A' "                          # active licenses
 	"AND NOT call_sign LIKE 'L%' "                     # exclude leases
 	"AND NOT market_code IN ('REA012', 'CMA306', 'BEA176', 'MEA052')") # exclude Gulf of Mexico
 q = cur.execute(q, (radio_service_code, block_code))
