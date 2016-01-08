@@ -113,9 +113,11 @@ def feature_props(uls_no, call_sign, owner, email, market, population, freq):
 		'market': market,
 		'uls_number': uls_no,
 		'call_sign': call_sign,
-		'population': '{:,}'.format(int(population)),
 		'owner': owner,
 	}
+
+	if population:
+		props['population'] = '{:,}'.format(int(population))
 
 	downlink = freq.findwithin(downlink_range)
 	if downlink:
@@ -181,8 +183,6 @@ for uls_no, call_sign, owner, email, market, market_pop, submarket_code in q.fet
 
 		assert len(q) > 0, "no partition info %s %s %s" % (call_sign, seq_num, def_und)
 		for part_market, area_name, part_pop, inc_exc in q:
-			if part_pop == '':
-				part_pop = 0
 
 			if def_und == 'D':
 				assert inc_exc == 'I', "defined exclude not implemented"
@@ -193,6 +193,7 @@ for uls_no, call_sign, owner, email, market, market_pop, submarket_code in q.fet
 				else:
 					geom = shape(market_geoms[part_market])
 			else:
+				part_pop = None
 				points = []
 				for row in cur.execute('SELECT partition_lat_degrees, partition_lat_minutes, partition_lat_seconds, partition_lat_direction, partition_long_degrees, partition_long_minutes, partition_long_seconds, partition_long_direction, partition_sequence_number FROM MC WHERE call_sign=? AND undefined_partitioned_area=? ORDER BY partition_sequence_number', (call_sign, seq_num)):
 					lat = parse_dms(*row[0:4])
@@ -215,12 +216,12 @@ for uls_no, call_sign, owner, email, market, market_pop, submarket_code in q.fet
 
 	for freq, parts in add_parts.items():
 		geom = shapely.ops.unary_union([ p[0] for p in parts ])
-		pop = sum([ p[1] for p in parts ])
+		pops = [ p[1] for p in parts ]
+		pop = None if None in pops else sum(pops)
 		freqs[freq] = (geom, pop)
 
 	for freq, parts in sub_parts.items():
 		geom = shapely.ops.unary_union([ p[0] for p in parts ])
-		pop = sum([ p[1] for p in parts ])
 
 		intersects = 0
 		remaining_geom = geom
@@ -236,12 +237,12 @@ for uls_no, call_sign, owner, email, market, market_pop, submarket_code in q.fet
 					add_freq = f.difference(freq)
 					if add_freq in freqs:
 						add_geom, add_pop = freqs[add_freq]
-						freqs[add_freq] = (add_geom.union(intersection), add_pop + pop)
+						freqs[add_freq] = (add_geom.union(intersection), None)
 					else:
-						freqs[add_freq] = (remaining_geom, pop)
+						freqs[add_freq] = (remaining_geom, None)
 
 				parent_geom, parent_pop = freqs[f]
-				freqs[f] = (parent_geom.difference(remaining_geom), parent_pop - pop)
+				freqs[f] = (parent_geom.difference(remaining_geom), None)
 
 				remaining_geom = remaining_geom.difference(parent_geom)
 				if remaining_geom.area / geom.area < .01:
