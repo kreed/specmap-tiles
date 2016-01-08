@@ -47,7 +47,7 @@ result = []
 con = sqlite3.connect(os.path.dirname(os.path.realpath(__file__)) + "/l_market.sqlite")
 cur = con.cursor()
 
-def canon_owner(owner, email):
+def owner_dba(owner, email):
 	owner, email = owner.lower(), email.lower()
 
 	if email.endswith('t-mobile.com'):
@@ -65,30 +65,46 @@ def canon_owner(owner, email):
 	if email.endswith('dish.com') or email.endswith('dishnetwork.com'):
 		return 'Dish Network'
 
-	if owner.startswith('uscoc') or owner == 'king street wireless, lp' or owner == 'united states cellular operating company llc' or owner == 'carroll wireless, lp' or owner == 'barat wireless, l.p.' or owner == 'hardy cellular telephone company':
-		return 'US Cellular'
 	if owner.startswith('wirelessco') or 'sprint' in owner or 'nextel' in owner:
 		return 'Sprint'
-	if 't-mobile' in owner:
-		return 'T-Mobile'
-	if 'iowa wireless' in owner:
-		return 'iWireless'
 	if 'at&t' in owner or 'a t & t' in owner or 'cingular' in owner:
 		return 'AT&T'
+	if 't-mobile' in owner:
+		return 'T-Mobile'
+	if owner == 'cellco partnership' or 'verizon' in owner or 'alltell' in owner:
+		return 'Verizon'
+	if owner.startswith('uscoc') or 'united states cellular' in owner or 'king street wireless' in owner or 'carroll wireless' in owner or 'barat wireless' in owner or owner == 'hardy cellular telephone company':
+		return 'US Cellular'
+	if 'cellular south' in owner:
+		return 'C Spire'
+	if 'iowa wireless' in owner:
+		return 'iWireless'
+	if 'snr wireless' in owner or 'northstar wireless' in owner:
+		return 'Dish Network'
 	if owner.startswith('cavalier'):
 		return 'Cavalier'
 	if owner.startswith('c700'):
 		return 'Continuum 700'
-	if 'cellular south' in owner:
-		return 'C Spire'
-	if owner == 'cellco partnership' or 'verizon' in owner or 'alltell' in owner:
-		return 'Verizon'
-	if 'snr wireless' in owner or 'northstar wireless' in owner:
-		return 'Dish Network'
+	if 'grain spectrum' in owner:
+		return 'Grain Spectrum'
 	if 'ab license co' in owner:
 		return 'AB License Co'
 	if 'ct cube' in owner or 'central texas telephone' in owner:
 		return 'West Central Wireless'
+	if 'infrastructure networks' in owner:
+		return 'Infrastructure Networks'
+	if 'alaska wireless network' in owner:
+		return 'GCI'
+	if 'mta communications' in owner:
+		return 'MTA Communications'
+	if 'north dakota network' in owner:
+		return 'SRT Communications'
+	if 'bluegrass' in owner:
+		return 'Bluegrass Cellular'
+	if 'east kentucky network' in owner or 'appalachian wireless' in owner:
+		return 'Appalachian Wireless'
+	if 'nemont communications' in owner:
+		return 'Nemont'
 	return None
 
 color_table = {
@@ -96,10 +112,8 @@ color_table = {
 	'iWireless': '#ff9cff',
 	'C Spire': '#208dd9',
 	'AT&T': '#00FFFF',
-	'Leap Licenseco Inc.': '#00FFFF',
-	'Horry Telephone Cooperative, Inc.': '#00FFFF',
 	'US Cellular': '#A5CCE8',
-	'AB License Co LLC': '#00ff00',
+	'AB License Co': '#00ff00',
 	'Cavalier': '#009E60',
 	'Continuum 700': '#BFFF00',
 	"Sprint": '#FFFF00',
@@ -126,11 +140,11 @@ def feature_props(uls_no, call_sign, owner, email, market, population, freq):
 	if uplink:
 		props['uplink'] = uplink
 
-	common = canon_owner(owner, email)
-	if common:
-		props['owner_common_name'] = common
-		if common in color_table:
-			props['fill'] = color_table[common]
+	dba = owner_dba(owner, email)
+	if dba:
+		props['owner_dba'] = dba
+		if dba in color_table:
+			props['fill'] = color_table[dba]
 
 	return props
 
