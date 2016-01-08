@@ -60,11 +60,8 @@ class SpectrumRanges:
 
 		self.ranges = tuple(sorted(rngs))
 
-	def downlink(self):
-		return ','.join([ repr(e) for e in self.ranges[len(self.ranges)//2:] ])
-
-	def uplink(self):
-		return ','.join([ repr(e) for e in self.ranges[:len(self.ranges)//2] ])
+	def findwithin(self, rng):
+		return ','.join([ repr(e) for e in self.ranges if rng.contains(e) ])
 
 	def contains(self, otherrngs):
 		for otherrng in otherrngs.ranges:

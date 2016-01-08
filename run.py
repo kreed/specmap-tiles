@@ -8,39 +8,39 @@ import sys
 import shapely.ops
 from geoms import county_geoms, market_geoms
 from shapely.geometry import mapping, shape, GeometryCollection, MultiPolygon, Polygon
-from specrange import SpectrumRanges
+from specrange import SpectrumRange, SpectrumRanges
 
 from pprint import pprint
 
 radio_service_map = {
-	'700LA': ('WY', 'A'),
-	'700LB': ('WY', 'B'),
-	'700LC': ('WZ', 'C'),
-	'700UC': ('WU', 'C'),
-	'AWS1A': ('AW', 'A'),
-	'AWS1B': ('AW', 'B'),
-	'AWS1C': ('AW', 'C'),
-	'AWS1D': ('AW', 'D'),
-	'AWS1E': ('AW', 'E'),
-	'AWS1F': ('AW', 'F'),
-	'AWS3G': ('AT', 'G'),
-	'AWS3H': ('AT', 'H'),
-	'AWS3I': ('AT', 'I'),
-	'AWS3J': ('AT', 'J'),
-	'PCSA': ('CW', 'A'),
-	'PCSB': ('CW', 'B'),
-	'PCSC': ('CW', 'C'),
-	'PCSD': ('CW', 'D'),
-	'PCSE': ('CW', 'E'),
-	'PCSF': ('CW', 'F'),
-	'PCSG': ('CY', 'G'),
-	'WCSA': ('WS', 'A'),
-	'WCSB': ('WS', 'B'),
+	'700LA': ('WY', 'A', SpectrumRange(698,704), SpectrumRange(728,734)),
+	'700LB': ('WY', 'B', SpectrumRange(704,710), SpectrumRange(734,740)),
+	'700LC': ('WZ', 'C', SpectrumRange(710,716), SpectrumRange(740,746)),
+	'700UC': ('WU', 'C', SpectrumRange(746,757), SpectrumRange(776,787)),
+	'AWS1A': ('AW', 'A', SpectrumRange(1710,1720), SpectrumRange(2110,2120)),
+	'AWS1B': ('AW', 'B', SpectrumRange(1720,1730), SpectrumRange(2120,2130)),
+	'AWS1C': ('AW', 'C', SpectrumRange(1730,1735), SpectrumRange(2130,2135)),
+	'AWS1D': ('AW', 'D', SpectrumRange(1735,1740), SpectrumRange(2135,2140)),
+	'AWS1E': ('AW', 'E', SpectrumRange(1740,1745), SpectrumRange(2140,2145)),
+	'AWS1F': ('AW', 'F', SpectrumRange(1745,1755), SpectrumRange(2145,2155)),
+	'AWS3G': ('AT', 'G', SpectrumRange(1755,1760), SpectrumRange(2155,2160)),
+	'AWS3H': ('AT', 'H', SpectrumRange(1760,1765), SpectrumRange(2160,2165)),
+	'AWS3I': ('AT', 'I', SpectrumRange(1765,1770), SpectrumRange(2165,2170)),
+	'AWS3J': ('AT', 'J', SpectrumRange(1770,1780), SpectrumRange(2170,2180)),
+	'PCSA': ('CW', 'A', SpectrumRange(1850,1865), SpectrumRange(1930,1945)),
+	'PCSD': ('CW', 'D', SpectrumRange(1865,1870), SpectrumRange(1945,1950)),
+	'PCSB': ('CW', 'B', SpectrumRange(1870,1885), SpectrumRange(1950,1965)),
+	'PCSE': ('CW', 'E', SpectrumRange(1885,1890), SpectrumRange(1965,1970)),
+	'PCSF': ('CW', 'F', SpectrumRange(1890,1895), SpectrumRange(1970,1975)),
+	'PCSC': ('CW', 'C', SpectrumRange(1895,1910), SpectrumRange(1975,1990)),
+	'PCSG': ('CY', 'G', SpectrumRange(1910,1915), SpectrumRange(1990,1995)),
+	'WCSA': ('WS', 'A', SpectrumRange(2305,2310), SpectrumRange(2350,2355)),
+	'WCSB': ('WS', 'B', SpectrumRange(2310,2315), SpectrumRange(2355,2360)),
 }
 
 filename = sys.argv[1]
 radio_service = os.path.basename(filename).replace('.geojson', '')
-radio_service_code, block_code = radio_service_map[radio_service]
+radio_service_code, block_code, uplink_range, downlink_range = radio_service_map[radio_service]
 
 result = []
 
@@ -115,9 +115,14 @@ def feature_props(uls_no, call_sign, owner, email, market, population, freq):
 		'call_sign': call_sign,
 		'population': '{:,}'.format(int(population)),
 		'owner': owner,
-		'downlink': freq.downlink(),
-		'uplink': freq.uplink(),
 	}
+
+	downlink = freq.findwithin(downlink_range)
+	if downlink:
+		props['downlink'] = downlink
+	uplink = freq.findwithin(uplink_range)
+	if uplink:
+		props['uplink'] = uplink
 
 	common = canon_owner(owner, email)
 	if common:
