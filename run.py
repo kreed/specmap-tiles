@@ -5,10 +5,10 @@ import os
 import re
 import sqlite3
 import sys
-import shapely.ops
 from geoms import county_geoms, market_geoms
 from shapely.geometry import mapping, shape, GeometryCollection, MultiPolygon, Polygon
 from specrange import SpectrumRange, SpectrumRanges
+from partcollection import PartitionCollection
 
 from pprint import pprint
 
@@ -165,10 +165,6 @@ def parse_dms(d, m, s, direc):
 	r = r * (-1 if direc in ('S', 'W') else 1)
 	return round(r, 6)
 
-def approx_within(needle, haystack):
-	""" test if most of needle (>99.5%) is inside haystack """
-	return needle.difference(haystack).area / needle.area < .005
-
 q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, email, market_code, population, submarket_code "
 	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign)"
 	"WHERE radio_service_code=? AND channel_block=? "  # select the given spectrum block
@@ -206,10 +202,9 @@ for uls_no, call_sign, owner, email, market, market_pop, submarket_code in q.fet
 
 		q = ('SELECT market_partition_code, defined_partition_area, defined_area_population, include_exclude_ind FROM MP WHERE call_sign=? AND partitioned_seq_num=? AND def_und_ind=?')
 		q = cur.execute(q, (call_sign, seq_num, def_und)).fetchall()
-
 		assert len(q) > 0, "no partition info %s %s %s" % (call_sign, seq_num, def_und)
-		for part_market, area_name, part_pop, inc_exc in q:
 
+		for part_market, area_name, part_pop, inc_exc in q:
 			if def_und == 'D':
 				assert inc_exc == 'I', "defined exclude not implemented"
 				match = re.match('(\d{5}): .*', area_name)
@@ -238,51 +233,11 @@ for uls_no, call_sign, owner, email, market, market_pop, submarket_code in q.fet
 
 	assert len(add_parts) > 0, "no geometries included %s" % call_sign
 
-	freqs = {}
+	partitions = PartitionCollection()
+	partitions.add_parts(add_parts)
+	partitions.subtract_parts(sub_parts)
 
-	for freq, parts in add_parts.items():
-		geom = shapely.ops.unary_union([ p[0] for p in parts ])
-		pops = [ p[1] for p in parts ]
-		pop = None if None in pops else sum(pops)
-		freqs[freq] = (geom, pop)
-
-	for freq, parts in sub_parts.items():
-		geom = shapely.ops.unary_union([ p[0] for p in parts ])
-
-		intersects = 0
-		remaining_geom = geom
-		for f in list(freqs.keys()):
-			if not f.contains(freq):
-				continue
-
-			intersection = remaining_geom.intersection(freqs[f][0])
-			if intersection.area / geom.area > .01:
-				intersects += 1
-
-				if f != freq:
-					add_freq = f.difference(freq)
-					if add_freq in freqs:
-						add_geom, add_pop = freqs[add_freq]
-						freqs[add_freq] = (add_geom.union(intersection), None)
-					else:
-						freqs[add_freq] = (remaining_geom, None)
-
-				parent_geom, parent_pop = freqs[f]
-				freqs[f] = (parent_geom.difference(remaining_geom), None)
-
-				remaining_geom = remaining_geom.difference(parent_geom)
-				if remaining_geom.area / geom.area < .01:
-					break
-
-		if intersects > 1:
-			print(uls_no, call_sign, 'intersects:', intersects)
-
-		if remaining_geom.area / geom.area >= .01:
-			print(uls_no, call_sign, "large remaining exclude geometry (%.3f%% of original area)" % (100 * remaining_geom.area / geom.area))
-
-	for freq, part in freqs.items():
-		geom, population = part
-
+	for freq, geom, population in partitions.items():
 		if type(geom) is GeometryCollection:
 			print(uls_no, call_sign, "removing non-polygons from geometry")
 			geom = MultiPolygon([ p for p in geom if type(p) is Polygon ])
