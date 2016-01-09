@@ -66,6 +66,12 @@ def owner_dba(owner, email):
 		return 'Dish Network'
 	if email.endswith('viaero.com'):
 		return 'Viaero Wireless'
+	if email.endswith('claropr.com'):
+		return 'Claro'
+	if email.endswith('openmobilepr.com'):
+		return 'Open Mobile'
+	if email.endswith('commnetwireless.com'):
+		return 'Commnet Wireless'
 
 	if owner.startswith('wirelessco') or 'sprint' in owner or 'nextel' in owner:
 		return 'Sprint'
