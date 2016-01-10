@@ -61,18 +61,22 @@ class SpectrumRanges:
 		self.ranges = tuple(sorted(rngs))
 
 	def findwithin(self, rng):
+		if not rng:
+			return None
 		return ','.join([ repr(e) for e in self.ranges if rng.contains(e) ])
 
 	def contains(self, otherrngs):
-		for otherrng in otherrngs.ranges:
-			found = False
+		if type(otherrngs) is SpectrumRange:
 			for thisrng in self.ranges:
-				if thisrng.contains(otherrng):
-					found = True
-					break
-			if not found:
-				return False
-		return True
+				if thisrng.contains(otherrngs):
+					return True
+			return False
+		elif type(otherrngs) is SpectrumRanges:
+			for otherrng in otherrngs.ranges:
+				if not self.contains(otherrng):
+					return False
+			return True
+		assert False, "expecting SpectrumRange or SpectrumRanges"
 
 	def difference(self, otherrngs):
 		assert self.contains(otherrngs)

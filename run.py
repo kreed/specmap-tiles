@@ -35,6 +35,11 @@ radio_service_map = {
 	'PCSF': ('CW', 'F', SpectrumRange(1890,1895), SpectrumRange(1970,1975)),
 	'PCSC': ('CW', 'C', SpectrumRange(1895,1910), SpectrumRange(1975,1990)),
 	'PCSG': ('CY', 'G', SpectrumRange(1910,1915), SpectrumRange(1990,1995)),
+	'AWSH': ('AH', 'H', SpectrumRange(1915,1920), SpectrumRange(1995,2000)),
+	'AWS3A1': ('AT', 'A1', SpectrumRange(1695,1700), None),
+	'AWS3B1': ('AT', 'B1', SpectrumRange(1700,1710), None),
+	'AWS4A': ('AD', 'A', None, SpectrumRanges((SpectrumRange(2000,2010), SpectrumRange(2180,2190)))),
+	'AWS4B': ('AD', 'B', None, SpectrumRanges((SpectrumRange(2010,2020), SpectrumRange(2190,2200)))),
 	'WCSA': ('WS', 'A', SpectrumRange(2305,2310), SpectrumRange(2350,2355)),
 	'WCSB': ('WS', 'B', SpectrumRange(2310,2315), SpectrumRange(2355,2360)),
 }
