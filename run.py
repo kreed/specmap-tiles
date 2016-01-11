@@ -20,6 +20,7 @@ radio_service_map = {
 	'700LD': ('WZ', 'D', None, SpectrumRange(716,722)),
 	'700LE': ('WY', 'E', None, SpectrumRange(722,728)),
 	'700UC': ('WU', 'C', SpectrumRange(746,757), SpectrumRange(776,787)),
+	'SMR': (('YC','YH'), None, SpectrumRange(814,824), SpectrumRange(859,869)),
 	'AWS1A': ('AW', 'A', SpectrumRange(1710,1720), SpectrumRange(2110,2120)),
 	'AWS1B': ('AW', 'B', SpectrumRange(1720,1730), SpectrumRange(2120,2130)),
 	'AWS1C': ('AW', 'C', SpectrumRange(1730,1735), SpectrumRange(2130,2135)),
@@ -100,16 +101,23 @@ def parse_dms(d, m, s, direc):
 
 q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, email, market_code, market_name, population, submarket_code "
 	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign)"
-	"WHERE radio_service_code=? AND channel_block=? "  # select the given spectrum block
+	+ ("WHERE radio_service_code IN ('" + "','".join(radio_service_code) + "') " if radio_service == 'SMR' else "WHERE radio_service_code=? AND channel_block=? ") +
 	"AND entity_type='L' "                             # we want the owner (L), not the contact (CL)
 	"AND license_status='A' "                          # active licenses
 	"AND NOT call_sign LIKE 'L%' "                     # exclude leases
 	"AND NOT market_code IN ('REA012', 'CMA306', 'BEA176', 'MEA052', 'BTA494', 'BTA495')") # exclude Gulf of Mexico
-q = cur.execute(q, (radio_service_code, block_code))
+if radio_service == 'SMR':
+	q = cur.execute(q)
+else:
+	q = cur.execute(q, (radio_service_code, block_code))
 for uls_no, call_sign, owner, email, market, market_name, market_pop, submarket_code in q.fetchall():
 	print(uls_no, call_sign)
 
-	q = ("SELECT partitioned_seq_num, def_und_ind, GROUP_CONCAT(lower_frequency||'-'||upper_frequency) FROM MF WHERE call_sign=? GROUP BY partitioned_seq_num, def_und_ind")
+	if radio_service == 'SMR' and submarket_code == 0:
+		# SMR has different sequence numbers for each freqency pair even though each one covers the same area
+		q = ("SELECT partitioned_seq_num, def_und_ind, GROUP_CONCAT(lower_frequency||'-'||upper_frequency) FROM MF WHERE call_sign=? GROUP BY def_und_ind")
+	else:
+		q = ("SELECT partitioned_seq_num, def_und_ind, GROUP_CONCAT(lower_frequency||'-'||upper_frequency) FROM MF WHERE call_sign=? GROUP BY partitioned_seq_num, def_und_ind")
 	q = cur.execute(q, (call_sign,)).fetchall()
 
 	if len(q) == 0:
@@ -125,17 +133,26 @@ for uls_no, call_sign, owner, email, market, market_name, market_pop, submarket_
 		print(uls_no, call_sign, "skipping Iowa Study Area")
 		continue
 
-	if submarket_code == 0:
-		assert len(q) == 1, "%s submarket_code is 0 but license has multiple partitions" % call_sign
-		props = feature_props(uls_no, call_sign, owner, email, market, market_pop, SpectrumRanges.fromstr(q[0][2]))
-		result.append(geojson.Feature(properties=props, geometry=market_geoms[market.replace('EAG70', 'EAG00')]))
-		continue
-
+	part_count = len(q)
 	add_parts = {}
 	sub_parts = {}
 
 	for seq_num, def_und, freq in q:
 		freq = SpectrumRanges.fromstr(freq)
+
+		if ((not downlink_range or not freq.findwithin(downlink_range)) and
+				(not uplink_range or not freq.findwithin(uplink_range)) and
+				(not tdd_range or not freq.findwithin(tdd_range))):
+			print(uls_no, call_sign, "skipping out of range license")
+			part_count -= 1
+			continue
+
+		if submarket_code == 0:
+			assert len(q) == 1, "%s submarket_code is 0 but license has multiple partitions" % call_sign
+			props = feature_props(uls_no, call_sign, owner, email, market, market_pop, freq)
+			result.append(geojson.Feature(properties=props, geometry=market_geoms[market.replace('EAG70', 'EAG00')]))
+			part_count -= 1
+			break
 
 		q = ('SELECT market_partition_code, defined_partition_area, defined_area_population, include_exclude_ind FROM MP WHERE call_sign=? AND partitioned_seq_num=? AND def_und_ind=?')
 		q = cur.execute(q, (call_sign, seq_num, def_und)).fetchall()
@@ -168,19 +185,20 @@ for uls_no, call_sign, owner, email, market, market_name, market_pop, submarket_
 				dest_list[freq] = []
 			dest_list[freq].append((geom, part_pop))
 
-	assert len(add_parts) > 0, "no geometries included %s" % call_sign
+	if part_count > 0:
+		assert len(add_parts) > 0, "no geometries included %s" % call_sign
 
-	partitions = PartitionCollection()
-	partitions.add_parts(add_parts)
-	partitions.subtract_parts(sub_parts)
+		partitions = PartitionCollection()
+		partitions.add_parts(add_parts)
+		partitions.subtract_parts(sub_parts)
 
-	for freq, geom, population in partitions.items():
-		if type(geom) is GeometryCollection:
-			print(uls_no, call_sign, "removing non-polygons from geometry")
-			geom = MultiPolygon([ p for p in geom if type(p) is Polygon ])
+		for freq, geom, population in partitions.items():
+			if type(geom) is GeometryCollection:
+				print(uls_no, call_sign, "removing non-polygons from geometry")
+				geom = MultiPolygon([ p for p in geom if type(p) is Polygon ])
 
-		props = feature_props(uls_no, call_sign, owner, email, market, population, freq)
-		result.append(geojson.Feature(properties=props, geometry=mapping(geom)))
+			props = feature_props(uls_no, call_sign, owner, email, market, population, freq)
+			result.append(geojson.Feature(properties=props, geometry=mapping(geom)))
 
 result = geojson.FeatureCollection(result)
 with open(filename, 'w') as out:
