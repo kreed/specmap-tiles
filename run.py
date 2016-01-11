@@ -17,6 +17,8 @@ radio_service_map = {
 	'700LA': ('WY', 'A', SpectrumRange(698,704), SpectrumRange(728,734)),
 	'700LB': ('WY', 'B', SpectrumRange(704,710), SpectrumRange(734,740)),
 	'700LC': ('WZ', 'C', SpectrumRange(710,716), SpectrumRange(740,746)),
+	'700LD': ('WZ', 'D', None, SpectrumRange(716,722)),
+	'700LE': ('WY', 'E', None, SpectrumRange(722,728)),
 	'700UC': ('WU', 'C', SpectrumRange(746,757), SpectrumRange(776,787)),
 	'AWS1A': ('AW', 'A', SpectrumRange(1710,1720), SpectrumRange(2110,2120)),
 	'AWS1B': ('AW', 'B', SpectrumRange(1720,1730), SpectrumRange(2120,2130)),
@@ -126,7 +128,7 @@ for uls_no, call_sign, owner, email, market, market_name, market_pop, submarket_
 	if submarket_code == 0:
 		assert len(q) == 1, "%s submarket_code is 0 but license has multiple partitions" % call_sign
 		props = feature_props(uls_no, call_sign, owner, email, market, market_pop, SpectrumRanges.fromstr(q[0][2]))
-		result.append(geojson.Feature(properties=props, geometry=market_geoms[market]))
+		result.append(geojson.Feature(properties=props, geometry=market_geoms[market.replace('EAG70', 'EAG00')]))
 		continue
 
 	add_parts = {}
