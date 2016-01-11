@@ -26,7 +26,7 @@ def owner_dba(owner, email):
 	if email.endswith('ptci.com'):
 		return 'Pioneer Cellular'
 
-	if owner.startswith('wirelessco') or 'sprint' in owner or 'nextel' in owner:
+	if owner.startswith('wirelessco') or 'sprint' in owner or 'nextel' in owner or 'nsac' in owner or 'fixed wireless holdings' in owner:
 		return 'Sprint'
 	if 'at&t' in owner or 'a t & t' in owner or 'cingular' in owner:
 		return 'AT&T'

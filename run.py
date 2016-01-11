@@ -42,15 +42,22 @@ radio_service_map = {
 	'AWS4B': ('AD', 'B', None, SpectrumRanges((SpectrumRange(2010,2020), SpectrumRange(2190,2200)))),
 	'WCSA': ('WS', 'A', SpectrumRange(2305,2310), SpectrumRange(2350,2355)),
 	'WCSB': ('WS', 'B', SpectrumRange(2310,2315), SpectrumRange(2355,2360)),
+	'BRS': ('BR', '', None, None, SpectrumRange(2496, 2690)),
 }
 
+db_name = 'l_market'
 filename = sys.argv[1]
 radio_service = os.path.basename(filename).replace('.geojson', '')
-radio_service_code, block_code, uplink_range, downlink_range = radio_service_map[radio_service]
+block_info = radio_service_map[radio_service]
+radio_service_code, block_code, uplink_range, downlink_range = block_info[:4]
+tdd_range = None
+if len(block_info) > 4:
+	db_name = 'l_mdsitfs'
+	tdd_range = block_info[4]
 
 result = []
 
-con = sqlite3.connect(os.path.dirname(os.path.realpath(__file__)) + "/l_market.sqlite")
+con = sqlite3.connect(os.path.join(os.path.dirname(os.path.realpath(__file__)), db_name + '.sqlite'))
 cur = con.cursor()
 
 def feature_props(uls_no, call_sign, owner, email, market, population, freq):
@@ -71,6 +78,9 @@ def feature_props(uls_no, call_sign, owner, email, market, population, freq):
 	uplink = freq.findwithin(uplink_range)
 	if uplink:
 		props['uplink'] = uplink
+	tdd = freq.findwithin(tdd_range)
+	if tdd:
+		props['tdd'] = tdd
 
 	dba = owner_dba(owner, email)
 	if dba:
@@ -86,15 +96,15 @@ def parse_dms(d, m, s, direc):
 	r = r * (-1 if direc in ('S', 'W') else 1)
 	return round(r, 6)
 
-q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, email, market_code, population, submarket_code "
+q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, email, market_code, market_name, population, submarket_code "
 	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign)"
 	"WHERE radio_service_code=? AND channel_block=? "  # select the given spectrum block
 	"AND entity_type='L' "                             # we want the owner (L), not the contact (CL)
 	"AND license_status='A' "                          # active licenses
 	"AND NOT call_sign LIKE 'L%' "                     # exclude leases
-	"AND NOT market_code IN ('REA012', 'CMA306', 'BEA176', 'MEA052')") # exclude Gulf of Mexico
+	"AND NOT market_code IN ('REA012', 'CMA306', 'BEA176', 'MEA052', 'BTA494', 'BTA495')") # exclude Gulf of Mexico
 q = cur.execute(q, (radio_service_code, block_code))
-for uls_no, call_sign, owner, email, market, market_pop, submarket_code in q.fetchall():
+for uls_no, call_sign, owner, email, market, market_name, market_pop, submarket_code in q.fetchall():
 	print(uls_no, call_sign)
 
 	q = ("SELECT partitioned_seq_num, def_und_ind, GROUP_CONCAT(lower_frequency||'-'||upper_frequency) FROM MF WHERE call_sign=? GROUP BY partitioned_seq_num, def_und_ind")
@@ -102,6 +112,10 @@ for uls_no, call_sign, owner, email, market, market_pop, submarket_code in q.fet
 
 	if len(q) == 0:
 		print(uls_no, call_sign, "no frequencies given")
+		continue
+
+	if market_name == 'P35 GSA':
+		# 35 mile radius around a coordinate. These are tiny, and seem to overlap with BTA markets, so just skip them for now.
 		continue
 
 	if [ seq_num for seq_num, def_und, freq in q if seq_num.startswith('ISA') ]:
