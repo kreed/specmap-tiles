@@ -9,7 +9,7 @@ from geoms import county_geoms, market_geoms
 from shapely.geometry import mapping, shape, GeometryCollection, MultiPolygon, Polygon
 from specrange import SpectrumRange, SpectrumRanges
 from partcollection import PartitionCollection
-from owner_info import owner_dba, owner_color
+from common_names import frn_table
 
 from pprint import pprint
 
@@ -63,7 +63,21 @@ result = []
 con = sqlite3.connect(os.path.join(os.path.dirname(os.path.realpath(__file__)), db_name + '.sqlite'))
 cur = con.cursor()
 
-def feature_props(uls_no, call_sign, owner, email, market, population, freq):
+owner_colors = {
+	'T-Mobile': '#ff00ff',
+	'iWireless': '#ff9cff',
+	'C Spire': '#208dd9',
+	'AT&T': '#00FFFF',
+	'US Cellular': '#A5CCE8',
+	'AB License Co': '#00ff00',
+	'Cavalier': '#009E60',
+	'Continuum C700': '#BFFF00',
+	"Sprint": '#FFFF00',
+	"Verizon": '#ff0000',
+	'Dish Network': '#ff7794',
+}
+
+def feature_props(uls_no, call_sign, owner, frn, market, population, freq):
 	props = {
 		'block': radio_service,
 		'market': market,
@@ -85,12 +99,11 @@ def feature_props(uls_no, call_sign, owner, email, market, population, freq):
 	if tdd:
 		props['tdd'] = tdd
 
-	dba = owner_dba(owner, email)
-	if dba:
+	if frn in frn_table:
+		dba = frn_table[frn]
 		props['owner_dba'] = dba
-		color = owner_color(dba)
-		if color:
-			props['fill'] = color
+		if dba in owner_colors:
+			props['fill'] = owner_colors[dba]
 
 	return props
 
@@ -99,7 +112,7 @@ def parse_dms(d, m, s, direc):
 	r = r * (-1 if direc in ('S', 'W') else 1)
 	return round(r, 6)
 
-q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, email, market_code, market_name, population, submarket_code "
+q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, frn, market_code, market_name, population, submarket_code "
 	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign)"
 	+ ("WHERE radio_service_code IN ('" + "','".join(radio_service_code) + "') " if radio_service == 'SMR' else "WHERE radio_service_code=? AND channel_block=? ") +
 	"AND entity_type='L' "                             # we want the owner (L), not the contact (CL)
@@ -110,7 +123,7 @@ if radio_service == 'SMR':
 	q = cur.execute(q)
 else:
 	q = cur.execute(q, (radio_service_code, block_code))
-for uls_no, call_sign, owner, email, market, market_name, market_pop, submarket_code in q.fetchall():
+for uls_no, call_sign, owner, frn, market, market_name, market_pop, submarket_code in q.fetchall():
 	print(uls_no, call_sign)
 
 	if radio_service == 'SMR' and submarket_code == 0:
@@ -149,7 +162,7 @@ for uls_no, call_sign, owner, email, market, market_name, market_pop, submarket_
 
 		if submarket_code == 0:
 			assert len(q) == 1, "%s submarket_code is 0 but license has multiple partitions" % call_sign
-			props = feature_props(uls_no, call_sign, owner, email, market, market_pop, freq)
+			props = feature_props(uls_no, call_sign, owner, frn, market, market_pop, freq)
 			result.append(geojson.Feature(properties=props, geometry=market_geoms[market.replace('EAG70', 'EAG00')]))
 			part_count -= 1
 			break
@@ -197,7 +210,7 @@ for uls_no, call_sign, owner, email, market, market_name, market_pop, submarket_
 				print(uls_no, call_sign, "removing non-polygons from geometry")
 				geom = MultiPolygon([ p for p in geom if type(p) is Polygon ])
 
-			props = feature_props(uls_no, call_sign, owner, email, market, population, freq)
+			props = feature_props(uls_no, call_sign, owner, frn, market, population, freq)
 			result.append(geojson.Feature(properties=props, geometry=mapping(geom)))
 
 result = geojson.FeatureCollection(result)
