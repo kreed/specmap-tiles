@@ -29,12 +29,23 @@ common_names = [
 	('Appalachian Wireless',),
 	('S&T Telephone',),
 	('Bluegrass Cellular',),
+	('Carolina West Wireless',),
+	('Smithville Communications', 'Smithville Telephone'),
+	('Hilbert Communications',),
+	('Cameron Communications', 'Cameron'),
+	('Cellcom',),
+	('Big Bend Telephone',),
+	('ClearTalk Wireless', 'Flat Wireless'),
 ]
 
 # FCC doesn't have common names associated with these FRNs yet
 frns = {
+	'0001601079': 'Strata Networks',
+	'0001630532': 'Silver Star Communications',
 	'0001637222': 'Triangle Communications',
 	'0001696319': 'Pioneer Cellular',
+	'0001835073': 'SouthernLINC Wireless',
+	'0001855352': 'SouthernLINC Wireless',
 	'0010584589': 'Sprint',
 	'0015019003': 'US Cellular',
 	'0015024565': 'AT&T',
