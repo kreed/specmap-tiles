@@ -68,3 +68,19 @@ for market, mcounties in markets.items():
 
 print('market_geoms =', geojson.dumps(market_geoms))
 print('county_geoms =', geojson.dumps(county_geoms))
+
+cell_geoms = {}
+
+for filename in ('A_Block_CGSA.geojson', 'B_Block_CGSA.geojson'):
+	with open(filename) as cell_file:
+		cells = geojson.load(cell_file)
+
+		for cell in cells.features:
+			if cell.properties['VERSION'] == 'Current':
+				call_sign = cell.properties['CALL_SIGN']
+				if call_sign in cell_geoms:
+					cell_geoms[call_sign] = mapping(shape(cell.geometry).union(shape(cell_geoms[call_sign])))
+				else:
+					cell_geoms[call_sign] = cell.geometry
+
+print('cell_geoms =', geojson.dumps(cell_geoms))

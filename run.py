@@ -5,7 +5,7 @@ import os
 import re
 import sqlite3
 import sys
-from geoms import county_geoms, market_geoms
+from geoms import county_geoms, market_geoms, cell_geoms
 from shapely.geometry import mapping, shape, GeometryCollection, MultiPolygon, Polygon
 from specrange import SpectrumRange, SpectrumRanges
 from partcollection import PartitionCollection
@@ -21,6 +21,8 @@ radio_service_map = {
 	'700LE': ('WY', 'E', None, SpectrumRange(722,728)),
 	'700UC': ('WU', 'C', SpectrumRange(746,757), SpectrumRange(776,787)),
 	'SMR': (('YC','YH'), None, SpectrumRange(814,824), SpectrumRange(859,869)),
+	'CellA': ('CL', 'A', SpectrumRanges((SpectrumRange(824,835), SpectrumRange(845,846.5))), SpectrumRanges((SpectrumRange(869,880), SpectrumRange(890,891.5)))),
+	'CellB': ('CL', 'B', SpectrumRanges((SpectrumRange(835,845), SpectrumRange(846.5,849))), SpectrumRanges((SpectrumRange(880,890), SpectrumRange(891.5,894)))),
 	'AWS1A': ('AW', 'A', SpectrumRange(1710,1720), SpectrumRange(2110,2120)),
 	'AWS1B': ('AW', 'B', SpectrumRange(1720,1730), SpectrumRange(2120,2130)),
 	'AWS1C': ('AW', 'C', SpectrumRange(1730,1735), SpectrumRange(2130,2135)),
@@ -54,9 +56,11 @@ radio_service = os.path.basename(filename).replace('.geojson', '')
 block_info = radio_service_map[radio_service]
 radio_service_code, block_code, uplink_range, downlink_range = block_info[:4]
 tdd_range = None
-if len(block_info) > 4:
+if radio_service == 'BRS':
 	db_name = 'l_mdsitfs'
 	tdd_range = block_info[4]
+elif radio_service.startswith('Cell'):
+	db_name = 'l_cell'
 
 result = []
 
@@ -120,11 +124,21 @@ q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, frn, market_co
 	"AND NOT call_sign LIKE 'L%' "                     # exclude leases
 	"AND NOT market_code IN ('REA012', 'CMA306', 'BEA176', 'MEA052', 'BTA494', 'BTA495')") # exclude Gulf of Mexico
 if radio_service == 'SMR':
-	q = cur.execute(q)
+	q = cur.execute(q).fetchall()
 else:
-	q = cur.execute(q, (radio_service_code, block_code))
-for uls_no, call_sign, owner, frn, market, market_name, market_pop, submarket_code in q.fetchall():
+	q = cur.execute(q, (radio_service_code, block_code)).fetchall()
+
+for uls_no, call_sign, owner, frn, market, market_name, market_pop, submarket_code in q:
 	print(uls_no, call_sign)
+
+	if radio_service.startswith('Cell'):
+		freq = SpectrumRanges(uplink_range.ranges + downlink_range.ranges)
+		if not call_sign in cell_geoms:
+			print('missing CGSA geom')
+			continue
+		props = feature_props(uls_no, call_sign, owner, frn, market, None, freq)
+		result.append(geojson.Feature(properties=props, geometry=cell_geoms[call_sign]))
+		continue
 
 	if radio_service == 'SMR' and submarket_code == 0:
 		# SMR has different sequence numbers for each freqency pair even though each one covers the same area
