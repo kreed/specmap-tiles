@@ -56,6 +56,8 @@ class SpectrumRanges:
 			rngs.append(item)
 
 		for r in ranges:
+			if type(r) is tuple:
+				r = SpectrumRange(*r)
 			add(r)
 
 		self.ranges = tuple(sorted(rngs))
