@@ -7,10 +7,10 @@ import zipfile
 owners = {}
 
 common_names = [
-	('C-Spire', 'Cellular South'),
+	('C Spire', 'Cellular South'),
 	('AT&T',),
 	('Sprint', 'Sprint Nextel', 'Clearwire', 'FIXED WIRELESS HOLDINGS, LLC'),
-	('Verizon', 'Verizon Wireless', 'Binghamton MSA Limited Partnership'),
+	('Verizon', 'Verizon Wireless', 'Binghamton MSA Limited Partnership', 'Duluth MSA Limited Partnership'),
 	('T-Mobile',),
 	('US Cellular',),
 	('Viaero Wireless',),
@@ -19,7 +19,7 @@ common_names = [
 	('AB License Co', 'AB License Co LLC'),
 	('Cellular One of East Texas',),
 	('SRT Communications',),
-	('Commnet Wireless / Choice Wireless', 'Commnet Four Corners, LLC'),
+	('Commnet Wireless / Choice Wireless', 'Commnet Four Corners, LLC', 'Commnet Wireless'),
 	('West Central Wireless', 'Central Texas Telephone Coop (CTTC)'),
 	('MTA Solutions', 'MTA Wireless'),
 	('iWireless', 'i Wireless', 'West Iowa Wireless'),
@@ -42,6 +42,9 @@ common_names = [
 	('DoCoMo Pacific', 'GUAMCELL'),
 	('IT&E', 'PTI Pacifica'),
 	('Innovative Communications',),
+	('James Valley Telecommunications', 'James Valley Cooperative Telephone'),
+	('Kennebec Telephone Company', 'Kennebec Telephone'),
+	('Norvado', 'Chequamegon Communications Cooperative'),
 ]
 
 # FCC doesn't have common names associated with these FRNs yet
@@ -60,6 +63,7 @@ frns = {
 	'0015024565': 'AT&T',
 	'0015991664': 'Open Mobile',
 	'0021004817': 'Dish Network',
+	'0021472915': 'Kennebec Telephone Company',
 	'0021818133': 'GCI',
 	'0021991161': 'Infrastructure Networks',
 	'0022183347': 'Northeast Wireless Networks',
