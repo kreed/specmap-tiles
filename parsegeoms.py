@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
-# Usage: ./parsegeoms.py > geoms.py
-
 import geojson
-import shapely.ops
 import sys
 from collections import defaultdict
+from shapely.ops import unary_union
 from shapely.geometry import mapping, shape
 
 with open('cnty1990.geojson') as counties_file:
@@ -20,41 +18,15 @@ for county in counties.features:
 
 	county_geoms[fips] = county.geometry
 
-	cma = 'CMA%03d' % int(p['CMA'])
-	markets[cma].append(p['FIPS'])
-
-	bea = 'BEA%03d' % int(p['BEA'])
-	markets[bea].append(p['FIPS'])
-
-	rea = 'REA%03d' % int(p['REA'])
-	markets[rea].append(p['FIPS'])
-
-	mea = 'MEA%03d' % int(p['MEA'])
-	markets[mea].append(p['FIPS'])
-
-	bta = 'BTA%03d' % int(p['BTA'])
-	markets[bta].append(p['FIPS'])
-
-	mta = 'MTA%03d' % int(p['MTA'])
-	markets[mta].append(p['FIPS'])
-
-	eag = 'EAG%03d' % int(p['EAG'])
-	markets[eag].append(p['FIPS'])
+	for market_type in ('CMA', 'BEA', 'REA', 'MEA', 'BTA', 'MTA', 'EAG'):
+		code = '%s%03d' % (market_type, int(p[market_type]))
+		markets[code].append(fips)
 
 market_geoms = {}
 
 for market, mcounties in markets.items():
-	features = []
-	for fips in mcounties:
-		if fips in county_geoms:
-			features.append(shape(county_geoms[fips]))
-		else:
-			print('missing', fips)
-	merged = shapely.ops.unary_union(features)
+	merged = unary_union([ shape(county_geoms[fips]) for fips in mcounties ])
 	market_geoms[market] = mapping(merged)
-
-print('market_geoms =', geojson.dumps(market_geoms))
-print('county_geoms =', geojson.dumps(county_geoms))
 
 cell_geoms = {}
 
@@ -70,4 +42,10 @@ for filename in ('A_Block_CGSA.geojson', 'B_Block_CGSA.geojson'):
 				else:
 					cell_geoms[call_sign] = cell.geometry
 
-print('cell_geoms =', geojson.dumps(cell_geoms))
+with open('geoms.py', 'w') as f:
+	f.write('market_geoms = ')
+	geojson.dump(market_geoms, f)
+	f.write('\ncounty_geoms = ')
+	geojson.dump(county_geoms, f)
+	f.write('\ncell_geoms = ')
+	geojson.dump(cell_geoms, f)
