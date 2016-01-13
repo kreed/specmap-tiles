@@ -5,13 +5,12 @@ import os
 import re
 import sqlite3
 import sys
+from collections import defaultdict
+from common_names import frn_table
 from geoms import county_geoms, market_geoms, cell_geoms
+from partcollection import PartitionCollection
 from shapely.geometry import mapping, shape, GeometryCollection, MultiPolygon, Polygon
 from specrange import SpectrumRange, SpectrumRanges
-from partcollection import PartitionCollection
-from common_names import frn_table
-
-from pprint import pprint
 
 radio_service_map = {
 	'700LA': ('WY', 'A', SpectrumRange(698,704), SpectrumRange(728,734)),
@@ -167,8 +166,8 @@ for uls_no, call_sign, owner, frn, market, market_name, market_pop, submarket_co
 		continue
 
 	part_count = len(q)
-	add_parts = {}
-	sub_parts = {}
+	add_parts = defaultdict(list)
+	sub_parts = defaultdict(list)
 
 	for seq_num, def_und, freq in q:
 		freq = SpectrumRanges.fromstr(freq)
@@ -214,8 +213,6 @@ for uls_no, call_sign, owner, frn, market, market_name, market_pop, submarket_co
 					geom = geom.buffer(0)
 
 			dest_list = add_parts if inc_exc == 'I' else sub_parts
-			if not freq in dest_list:
-				dest_list[freq] = []
 			dest_list[freq].append((geom, part_pop))
 
 	if part_count > 0:

@@ -5,13 +5,14 @@
 import geojson
 import shapely.ops
 import sys
+from collections import defaultdict
 from shapely.geometry import mapping, shape
 
 with open('cnty1990.geojson') as counties_file:
 	counties = geojson.load(counties_file)
 
 county_geoms = {}
-markets = {}
+markets = defaultdict(list)
 
 for county in counties.features:
 	p = county.properties
@@ -20,38 +21,24 @@ for county in counties.features:
 	county_geoms[fips] = county.geometry
 
 	cma = 'CMA%03d' % int(p['CMA'])
-	if not cma in markets:
-		markets[cma] = []
 	markets[cma].append(p['FIPS'])
 
 	bea = 'BEA%03d' % int(p['BEA'])
-	if not bea in markets:
-		markets[bea] = []
 	markets[bea].append(p['FIPS'])
 
 	rea = 'REA%03d' % int(p['REA'])
-	if not rea in markets:
-		markets[rea] = []
 	markets[rea].append(p['FIPS'])
 
 	mea = 'MEA%03d' % int(p['MEA'])
-	if not mea in markets:
-		markets[mea] = []
 	markets[mea].append(p['FIPS'])
 
 	bta = 'BTA%03d' % int(p['BTA'])
-	if not bta in markets:
-		markets[bta] = []
 	markets[bta].append(p['FIPS'])
 
 	mta = 'MTA%03d' % int(p['MTA'])
-	if not mta in markets:
-		markets[mta] = []
 	markets[mta].append(p['FIPS'])
 
 	eag = 'EAG%03d' % int(p['EAG'])
-	if not eag in markets:
-		markets[eag] = []
 	markets[eag].append(p['FIPS'])
 
 market_geoms = {}
