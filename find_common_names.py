@@ -3,9 +3,13 @@
 import csv
 import io
 import zipfile
+from fcc_common_names import fcc_common_names
+from pprint import pprint
 
 owners = {}
 
+# List of common names to import from FCC license view data. Multiple entries
+# per row will all be merged under the first name.
 common_names = [
 	('C Spire', 'Cellular South'),
 	('AT&T',),
@@ -112,21 +116,11 @@ frns = {
 	'0024864746': 'Grain Spectrum',
 }
 
-common_names_map = {}
-
 for names in common_names:
 	for name in names:
-		common_names_map[name.upper()] = names[0]
-
-with zipfile.ZipFile('fcc-license-view-data-csv-format.zip', 'r') as inzip:
-	with inzip.open('fcc_lic_vw.csv') as infile:
-		incsv = csv.DictReader(io.TextIOWrapper(infile))
-		for row in incsv:
-			frn = row['FRN']
-			common_name = row['COMMON_NAME']
-			if frn and common_name in common_names_map:
-				frns[frn] = common_names_map[common_name]
+		for frn in fcc_common_names.get(name.upper(), []):
+			frns[frn] = names[0]
 
 with open('common_names.py', 'w') as f:
 	f.write('frn_table = ')
-	f.write(repr(frns))
+	pprint(frns, stream=f)
