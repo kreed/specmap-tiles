@@ -47,7 +47,7 @@ radio_service_map = {
 	'AWS4B': ('AD', 'B', None, SpectrumRanges(((2010,2020), (2190,2200)))),
 	'WCSA': ('WS', 'A', SpectrumRange(2305,2310), SpectrumRange(2350,2355)),
 	'WCSB': ('WS', 'B', SpectrumRange(2310,2315), SpectrumRange(2355,2360)),
-	'BRS': ('BR', '', None, None, SpectrumRange(2496, 2690)),
+	'BRS': ('BR', None, None, None, SpectrumRange(2496, 2690)),
 }
 
 db_name = 'l_market'
@@ -117,18 +117,25 @@ def parse_dms(d, m, s, direc):
 	return round(r, 6)
 
 q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, frn, market_code, market_name, population, submarket_code "
-	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign)"
-	+ ("WHERE radio_service_code IN ('" + "','".join(radio_service_code) + "') " if radio_service == 'SMR' else "WHERE radio_service_code=? AND channel_block=? ") +
-	"AND entity_type='L' "                             # we want the owner (L), not the contact (CL)
+	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign)")
+if radio_service == 'SMR':
+	q += "WHERE radio_service_code IN ('" + "','".join(radio_service_code) + "') "
+elif radio_service == 'BRS':
+	q += "WHERE radio_service_code=? "
+else:
+	q += "WHERE radio_service_code=? AND channel_block=? "
+q += ("AND entity_type='L' "                          # we want the owner (L), not the contact (CL)
 	"AND license_status='A' "                          # active licenses
 	"AND NOT call_sign LIKE 'L%' "                     # exclude leases
 	"AND NOT market_code IN ('REA012', 'CMA306', 'BEA176', 'MEA052', 'BTA494', 'BTA495')") # exclude Gulf of Mexico
 if radio_service == 'SMR':
-	q = cur.execute(q).fetchall()
+	q = cur.execute(q)
+elif radio_service == 'BRS':
+	q = cur.execute(q, (radio_service_code,))
 else:
-	q = cur.execute(q, (radio_service_code, block_code)).fetchall()
+	q = cur.execute(q, (radio_service_code, block_code))
 
-for uls_no, call_sign, owner, frn, market, market_name, market_pop, submarket_code in q:
+for uls_no, call_sign, owner, frn, market, market_name, market_pop, submarket_code in q.fetchall():
 	print(uls_no, call_sign)
 
 	if radio_service.startswith('Cell'):

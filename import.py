@@ -11,6 +11,16 @@ dbs = (
 	('l_mdsitfs', 'fixbrs.dat'),
 )
 
+def insertrow(table, values):
+	params = ','.join('NULL' if v == '' else '?' for v in values)
+	param_values = [v for v in values if v != '']
+	cur.execute('INSERT INTO ' + table + ' VALUES(' + params + ')', param_values)
+
+def deleterow(table, values, cols):
+	params = ' AND '.join(col.split(' ')[0] + (' ISNULL' if v == '' else '=?') for col, v in zip(cols, values))
+	param_values = [v for v in values if v != '']
+	cur.execute('DELETE FROM ' + table + ' WHERE ' + params, param_values)
+
 for db, fixes in dbs:
 	con = sqlite3.connect(db + '.sqlite')
 	cur = con.cursor()
@@ -24,7 +34,7 @@ for db, fixes in dbs:
 					for row in infile:
 						row = row.strip().split("|")
 						if len(row) == len(cols):
-							cur.execute('INSERT INTO ' + table + ' VALUES(' + (len(cols) * '?,')[:-1] + ')', row)
+							insertrow(table, row)
 			except KeyError:
 				continue
 
@@ -42,9 +52,9 @@ for db, fixes in dbs:
 
 				if len(row) == len(cols):
 					if delete:
-						cur.execute('DELETE FROM ' + table + ' WHERE ' + (' AND '.join([ col.split(' ')[0] + '=?' for col in cols ])), row)
+						deleterow(table, row, cols)
 					else:
-						cur.execute('INSERT INTO ' + table + ' VALUES(' + (len(cols) * '?,')[:-1] + ')', row)
+						insertrow(table, row)
 	except FileNotFoundError:
 		pass
 
