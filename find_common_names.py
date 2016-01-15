@@ -14,7 +14,7 @@ common_names = [
 	('C Spire', 'Cellular South'),
 	('AT&T',),
 	('Sprint', 'Sprint Nextel', 'Clearwire', 'FIXED WIRELESS HOLDINGS, LLC'),
-	('Verizon', 'Verizon Wireless', 'Binghamton MSA Limited Partnership', 'Duluth MSA Limited Partnership'),
+	('Verizon', 'Verizon Wireless', 'Binghamton MSA Limited Partnership', 'Duluth MSA Limited Partnership', 'ANDERSON CELLTELCO', 'DANVILLE CELLULAR TELEPHONE COMPANY LIMITED PARTNERSHIP', 'NEW MEXICO RSA 3 LIMITED PARTNERSHIP', 'Missouri RSA 2 Limited Partnership'),
 	('T-Mobile',),
 	('US Cellular',),
 	('Viaero Wireless',),
@@ -49,6 +49,14 @@ common_names = [
 	('James Valley Telecommunications', 'James Valley Cooperative Telephone'),
 	('Kennebec Telephone Company', 'Kennebec Telephone'),
 	('Norvado', 'Chequamegon Communications Cooperative'),
+	('Union Wireless', 'Union Telephone'),
+	('nTelos', 'NTELOS LICENSES INC.'),
+	('Wilkes Communications', 'Wilkes Cellular'),
+	('West Carolina Tel', 'West Carolina Rural Telephone Coop'),
+	('Cellular One of Arizona', 'SMITH BAGLEY'),
+	('PTCI', 'Panhandle Telephone'),
+	('United Telcom',),
+	('Indigo Wireless',),
 ]
 
 # FCC doesn't have common names associated with these FRNs yet
