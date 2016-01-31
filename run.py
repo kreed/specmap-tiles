@@ -7,7 +7,8 @@ import sqlite3
 import sys
 from collections import defaultdict
 from common_names import frn_table
-from geoms import county_geoms, market_geoms, cell_geoms
+from geoms import county_geoms, market_geoms
+from cellgeoms import cell_geoms
 from partcollection import PartitionCollection
 from shapely.geometry import mapping, shape, GeometryCollection, MultiPolygon, Polygon
 from specrange import SpectrumRange, SpectrumRanges

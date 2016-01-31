@@ -5,3 +5,6 @@ __pycache__/
 *.mbtiles
 *.sqlite
 *.zip
+cellgeoms.py
+A_Block_CGSA.geojson
+B_Block_CGSA.geojson
