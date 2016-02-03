@@ -73,7 +73,9 @@ frns = {
 	'0001754209': 'Pine Belt Wireless',
 	'0001835073': 'SouthernLINC Wireless',
 	'0001855352': 'SouthernLINC Wireless',
+	'0001886944': 'Horry Telephone Cooperative',
 	'0002837136': 'AT&T',
+	'0003801362': 'WUE, Inc',
 	'0004242475': 'iConnect',
 	'0010584589': 'Sprint',
 	'0011458999': 'GTA Teleguam',
@@ -133,7 +135,8 @@ frns = {
 for names in common_names:
 	for name in names:
 		for frn in fcc_common_names.get(name.upper(), []):
-			frns[frn] = names[0]
+			if not frn in frns:
+				frns[frn] = names[0]
 
 with open('common_names.py', 'w') as f:
 	f.write('frn_table = ')
