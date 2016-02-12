@@ -65,6 +65,7 @@ common_names = [
 # FCC doesn't have common names associated with these FRNs yet
 frns = {
 	'0001601079': 'Strata Networks',
+	'0001615095': 'Silver Star Communications',
 	'0001618008': 'Leaco / NMobile',
 	'0001630532': 'Silver Star Communications',
 	'0001637222': 'Triangle Communications',
