@@ -22,7 +22,7 @@ class SpectrumRange:
 			yield SpectrumRange(subfreq.upper, self.upper)
 
 	def __repr__(self):
-		return "{:g}-{:g}".format(self.lower, self.upper)
+		return "{:.10g}-{:.10g}".format(self.lower, self.upper)
 
 	def __hash__(self):
 		return hash((self.lower, self.upper))
