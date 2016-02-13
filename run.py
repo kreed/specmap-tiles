@@ -148,11 +148,7 @@ for uls_no, call_sign, owner, frn, market, market_name, market_pop, submarket_co
 		result.append(geojson.Feature(properties=props, geometry=cell_geoms[call_sign]))
 		continue
 
-	if radio_service == 'SMR' and submarket_code == 0:
-		# SMR has different sequence numbers for each freqency pair even though each one covers the same area
-		q = ("SELECT partitioned_seq_num, def_und_ind, GROUP_CONCAT(lower_frequency||'-'||upper_frequency) FROM MF WHERE call_sign=? GROUP BY def_und_ind")
-	else:
-		q = ("SELECT partitioned_seq_num, def_und_ind, GROUP_CONCAT(lower_frequency||'-'||upper_frequency) FROM MF WHERE call_sign=? GROUP BY partitioned_seq_num, def_und_ind")
+	q = ("SELECT partitioned_seq_num, def_und_ind, GROUP_CONCAT(lower_frequency||'-'||upper_frequency) FROM MF WHERE call_sign=? GROUP BY partitioned_seq_num, def_und_ind")
 	q = cur.execute(q, (call_sign,)).fetchall()
 
 	if len(q) == 0:
