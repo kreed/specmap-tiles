@@ -55,7 +55,10 @@ def run(db, zip_file, is_update):
 		with open(fix_file) as infile:
 			for row in infile:
 				delete = False
-				if row[0] == '-':
+				row = row.strip()
+				if len(row) == 0 or row[0] == '#':
+					continue
+				elif row[0] == '-':
 					delete = True
 					row = row[1:]
 
@@ -63,7 +66,7 @@ def run(db, zip_file, is_update):
 				if is_update and not uls_no in all_updated_records:
 					continue
 
-				row = row.strip().split("|")
+				row = row.split("|")
 				table = row[0]
 				cols = uls_tables[table]
 
