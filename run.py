@@ -20,7 +20,9 @@ radio_service_map = {
 	'700LD': ('WZ', 'D', None, SpectrumRange(716,722)),
 	'700LE': ('WY', 'E', None, SpectrumRange(722,728)),
 	'700UC': ('WU', 'C', SpectrumRange(746,757), SpectrumRange(776,787)),
-	'SMR': (('YC','YH'), None, SpectrumRange(814,824), SpectrumRange(859,869)),
+	'SMRA': (('YC','YH'), 'A', SpectrumRange(816,816.5), SpectrumRange(861,861.5)),
+	'SMRB': (('YC','YH'), 'B', SpectrumRange(816.5,818), SpectrumRange(861.5,863)),
+	'SMRX': (('YC','YH'), 'X', SpectrumRange(813,824), SpectrumRange(858,869)),
 	'CellA': ('CL', 'A', SpectrumRanges(((824,835), (845,846.5))), SpectrumRanges(((869,880), (890,891.5)))),
 	'CellB': ('CL', 'B', SpectrumRanges(((835,845), (846.5,849))), SpectrumRanges(((880,890), (891.5,894)))),
 	'AWS1A': ('AW', 'A', SpectrumRange(1710,1720), SpectrumRange(2110,2120)),
@@ -117,8 +119,8 @@ def parse_dms(d, m, s, direc):
 
 q = ("SELECT HD.unique_system_identifier, call_sign, entity_name, frn, market_code, market_name, population, submarket_code "
 	"FROM HD JOIN EN USING (call_sign) JOIN MK USING (call_sign)")
-if radio_service == 'SMR':
-	q += "WHERE radio_service_code IN ('" + "','".join(radio_service_code) + "') "
+if radio_service.startswith('SMR'):
+	q += "WHERE radio_service_code IN ('" + "','".join(radio_service_code) + "') AND channel_block=? "
 elif radio_service == 'BRS':
 	q += "WHERE radio_service_code=? "
 else:
@@ -127,8 +129,8 @@ q += ("AND entity_type='L' "                          # we want the owner (L), n
 	"AND license_status='A' "                          # active licenses
 	"AND NOT call_sign LIKE 'L%' "                     # exclude leases
 	"AND NOT market_code IN ('REA012', 'CMA306', 'BEA176', 'MEA052', 'BTA494', 'BTA495')") # exclude Gulf of Mexico
-if radio_service == 'SMR':
-	q = cur.execute(q)
+if radio_service.startswith('SMR'):
+	q = cur.execute(q, (block_code,))
 elif radio_service == 'BRS':
 	q = cur.execute(q, (radio_service_code,))
 else:
