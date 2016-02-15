@@ -131,6 +131,8 @@ frns = {
 	'0024703985': 'Cavalier',
 	'0024703993': 'Cavalier',
 	'0024864746': 'Grain Spectrum',
+	'0025284407': 'Cavalier',
+	'0025284423': 'Cavalier',
 }
 
 for names in common_names:
